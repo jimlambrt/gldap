@@ -41,7 +41,6 @@ func main() {
 		log.Printf("\nstopping directory")
 		s.Stop()
 	}
-
 }
 
 func bindHandler(w *gldap.ResponseWriter, r *gldap.Request) {

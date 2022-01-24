@@ -62,5 +62,4 @@ func TestServer_Run(t *testing.T) {
 		assert.NotNil(client)
 		client.Close()
 	})
-
 }

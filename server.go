@@ -90,7 +90,7 @@ func (s *Server) Run(addr string, opt ...Option) error {
 			return fmt.Errorf("%s: error accepting conn: %w", op, err)
 		}
 		s.logger.Debug("new connection accepted", "op", op, "conn", connID)
-		conn, err := NewConn(s.shutdownCtx, connID, c, s.logger, s.router)
+		conn, err := newConn(s.shutdownCtx, connID, c, s.logger, s.router)
 		if err != nil {
 			return fmt.Errorf("%s: unable to create in-memory conn: %w", op, err)
 		}

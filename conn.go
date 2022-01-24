@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-// Conn is a connection to an ldap client
-type Conn struct {
+// conn is a connection to an ldap client
+type conn struct {
 	mu sync.Mutex
 
 	connID      int
@@ -30,14 +30,14 @@ type Conn struct {
 	writer      *bufio.Writer
 }
 
-// NewConn will create a new Conn from an accepted net.Conn which will be used
+// newConn will create a new Conn from an accepted net.Conn which will be used
 // to serve requests to an ldap client.
-func NewConn(shutdownCtx context.Context, connID int, c net.Conn, logger hclog.Logger, router *Mux) (*Conn, error) {
+func newConn(shutdownCtx context.Context, connID int, netConn net.Conn, logger hclog.Logger, router *Mux) (*conn, error) {
 	const op = "gldap.NewConn"
 	if connID == 0 {
 		return nil, fmt.Errorf("%s: missing connection id: %w", op, ErrInvalidParameter)
 	}
-	if c == nil {
+	if netConn == nil {
 		return nil, fmt.Errorf("%s: missing connection: %w", op, ErrInvalidParameter)
 	}
 	if logger == nil {
@@ -46,22 +46,22 @@ func NewConn(shutdownCtx context.Context, connID int, c net.Conn, logger hclog.L
 	if router == nil {
 		return nil, fmt.Errorf("%s: missing router: %w", op, ErrInvalidParameter)
 	}
-	conn := &Conn{
+	c := &conn{
 		connID:      connID,
-		netConn:     c,
+		netConn:     netConn,
 		shutdownCtx: shutdownCtx,
 		logger:      logger,
 		router:      router,
 	}
-	if err := conn.initConn(c); err != nil {
+	if err := c.initConn(netConn); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	return conn, nil
+	return c, nil
 }
 
 // serveRequests until the connection is closed or the shutdownCtx is cancelled
 // as the server stops
-func (c *Conn) serveRequests() error {
+func (c *conn) serveRequests() error {
 	const op = "gldap.serveRequests"
 
 	requestID := 0
@@ -82,7 +82,7 @@ func (c *Conn) serveRequests() error {
 				ID:           w.requestID,
 				conn:         c,
 				message:      &ExtendedOperationMessage{baseMessage: baseMessage{id: 0}},
-				routeOp:      RouteOperation(ExtendedOperationDisconnection),
+				routeOp:      routeOperation(ExtendedOperationDisconnection),
 				extendedName: ExtendedOperationDisconnection,
 			}
 			resp := req.NewResponse(WithResponseCode(ldap.LDAPResultUnwillingToPerform), WithDiagnosticMessage("server stopping"))
@@ -128,7 +128,7 @@ func (c *Conn) serveRequests() error {
 	}
 }
 
-func (c *Conn) readRequest(requestID int) (*Request, error) {
+func (c *conn) readRequest(requestID int) (*Request, error) {
 	const op = "gldap.(Conn).readRequest"
 
 	p, err := c.readPacket(requestID)
@@ -143,7 +143,7 @@ func (c *Conn) readRequest(requestID int) (*Request, error) {
 	return r, nil
 }
 
-func (c *Conn) readPacket(requestID int) (*packet, error) {
+func (c *conn) readPacket(requestID int) (*packet, error) {
 	const op = "gldap.readPacket"
 	// read a request
 	berPacket, err := func() (*ber.Packet, error) {
@@ -174,20 +174,20 @@ func (c *Conn) readPacket(requestID int) (*packet, error) {
 	return p, nil
 }
 
-func (c *Conn) initConn(conn net.Conn) error {
+func (c *conn) initConn(netConn net.Conn) error {
 	const op = "gldap.(Conn).initConn"
 	if c == nil {
 		return fmt.Errorf("%s: missing connection: %w", op, ErrInvalidParameter)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.netConn = conn
+	c.netConn = netConn
 	c.reader = bufio.NewReader(c.netConn)
 	c.writer = bufio.NewWriter(c.netConn)
 	return nil
 }
 
-func (c *Conn) close() error {
+func (c *conn) close() error {
 	const op = "gldap.(Conn).close"
 	c.requestsWg.Wait()
 	c.netConn.Close()
