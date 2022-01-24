@@ -7,6 +7,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.1
 	github.com/hashicorp/go-hclog v1.1.0
 	github.com/stretchr/testify v1.7.0
+	mvdan.cc/gofumpt v0.2.1
 )
 
 require (
@@ -22,5 +23,4 @@ require (
 	golang.org/x/sys v0.0.0-20211213223007-03aa0b5f6827 // indirect
 	golang.org/x/tools v0.1.8 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
-	mvdan.cc/gofumpt v0.2.1 // indirect
 )

@@ -1,4 +1,4 @@
-package testdirectory_test
+package gldap_test
 
 import (
 	"crypto/tls"
@@ -13,6 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+/*
+	A set of overall tests which use the testdirectory. The purposes of these
+	tests is to primarily create a baseline set of end to end tests.
+*/
 
 func Test_Start(t *testing.T) {
 	t.Parallel()

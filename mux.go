@@ -35,7 +35,7 @@ func (m *Mux) Bind(bindFn HandlerFunc, opt ...Option) error {
 	r := &simpleBindRoute{
 		baseRoute: &baseRoute{
 			h:       bindFn,
-			routeOp: bindRoute,
+			routeOp: bindRouteOperation,
 			label:   opts.withLabel,
 		},
 		authChoice: SimpleAuthChoice,
@@ -99,20 +99,12 @@ func (m *Mux) DefaultRoute(noRouteFN HandlerFunc, opt ...Option) error {
 	}
 	r := &baseRoute{
 		h:       noRouteFN,
-		routeOp: bindRoute,
+		routeOp: bindRouteOperation,
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.routes = append(m.routes, r)
 	return nil
-}
-
-// Routes returns the registered routes along with the registered default route
-func (m *Mux) Routes() ([]route, route) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	// return a copy of the routes slice
-	return append([]route{}, m.routes...), m.defaultRoute
 }
 
 // serveRequests will find a matching route to serve the request

@@ -17,6 +17,7 @@ func getRouteOpts(opt ...Option) routeOptions {
 	return opts
 }
 
+// WithLabel specifies an optional label for the route
 func WithLabel(l string) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*routeOptions); ok {
@@ -25,6 +26,7 @@ func WithLabel(l string) Option {
 	}
 }
 
+// WithBaseDN specifies an optional base DN to associate with a Search route
 func WithBaseDN(dn string) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*routeOptions); ok {
@@ -33,6 +35,7 @@ func WithBaseDN(dn string) Option {
 	}
 }
 
+// WithFilter specifies an optional filter to associate with a Search route
 func WithFilter(filter string) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*routeOptions); ok {

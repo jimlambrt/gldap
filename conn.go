@@ -18,7 +18,7 @@ import (
 
 // conn is a connection to an ldap client
 type conn struct {
-	mu sync.Mutex
+	mu sync.Mutex // mutext for the conn
 
 	connID      int
 	netConn     net.Conn
@@ -26,8 +26,10 @@ type conn struct {
 	router      *Mux
 	shutdownCtx context.Context
 	requestsWg  sync.WaitGroup
-	reader      *bufio.Reader
-	writer      *bufio.Writer
+
+	reader   *bufio.Reader
+	writer   *bufio.Writer
+	writerMu sync.Mutex // shared lock across all ResponseWriter's to prevent write data races
 }
 
 // newConn will create a new Conn from an accepted net.Conn which will be used
@@ -67,7 +69,7 @@ func (c *conn) serveRequests() error {
 	requestID := 0
 	for {
 		requestID += 1
-		w, err := NewResponseWriter(c.writer, c.logger, c.connID, requestID)
+		w, err := newResponseWriter(c.writer, &c.writerMu, c.logger, c.connID, requestID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
 		}

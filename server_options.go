@@ -46,6 +46,7 @@ func WithTLSConfig(tc *tls.Config) Option {
 	}
 }
 
+// WithReadTimeout will set a read time out per connection
 func WithReadTimeout(d time.Duration) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*configOptions); ok {
@@ -54,6 +55,7 @@ func WithReadTimeout(d time.Duration) Option {
 	}
 }
 
+// WithWriteTimeout will set a write timeout per connection
 func WithWriteTimeout(d time.Duration) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*configOptions); ok {
@@ -62,10 +64,13 @@ func WithWriteTimeout(d time.Duration) Option {
 	}
 }
 
-func WithDisablePanicRecovery(disable bool) Option {
+// WithDisablePanicRecovery will disable recovery from panics which occur when
+// handling a request.  This is helpful for debugging since you'll get the
+// panic's callstack.
+func WithDisablePanicRecovery() Option {
 	return func(o interface{}) {
 		if o, ok := o.(*configOptions); ok {
-			o.withDisablePanicRecovery = disable
+			o.withDisablePanicRecovery = true
 		}
 	}
 }

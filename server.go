@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-// Server is an ldap server that you can add mux (multiplexer) router to and
+// Server is an ldap server that you can add a mux (multiplexer) router to and
 // then run it to accept and process requests.
 type Server struct {
 	mu           sync.RWMutex
@@ -31,9 +31,9 @@ type Server struct {
 // NewServer creates a new ldap server
 //
 // Options supported:
-//	WithLogger (pass a logger with a level of hclog.Off to turn off all logging)
-//	WithReadTimeout
-//	WithWriteTimeout
+//  WithLogger allows you pass a logger with whatever hclog.Level you wish including hclog.Off to turn off all logging
+//  WithReadTimeout will set a read time out per connection
+//  WithWriteTimeout will set a write time out per connection
 func NewServer(opt ...Option) (*Server, error) {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	opts := getConfigOpts(opt...)
@@ -73,7 +73,9 @@ func (s *Server) Run(addr string, opt ...Option) error {
 	if opts.withTLSConfig != nil {
 		s.logger.Debug("setting up TLS listener", "op", op)
 		s.tlsConfig = opts.withTLSConfig
+		s.mu.Lock()
 		s.listener = tls.NewListener(s.listener, s.tlsConfig)
+		s.mu.Unlock()
 	}
 	s.logger.Info("listening", "op", op, "addr", s.listener.Addr())
 
@@ -155,13 +157,15 @@ func (s *Server) Stop() error {
 	return nil
 }
 
-// Router specifies a mux (multiplexer) router for matching inbound requests
+// Router sets the mux (multiplexer) router for matching inbound requests
 // to handlers.
 func (s *Server) Router(r *Mux) error {
 	const op = "gldap.(Server).HandleRoutes"
 	if r == nil {
 		return fmt.Errorf("%s: missing router: %w", op, ErrInvalidParameter)
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.router = r
 	return nil
 }

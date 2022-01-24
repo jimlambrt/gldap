@@ -9,7 +9,6 @@ import (
 // SIDBytes creates a SID from the provided revision and identifierAuthority
 func SIDBytes(revision uint8, identifierAuthority uint16) ([]byte, error) {
 	const op = "gldap.SidBytes"
-	// identifierAuthorityParts := [3]uint16{identifierAuthority}
 	var identifierAuthorityParts [3]uint16
 	identifierAuthorityParts[2] = identifierAuthority
 
