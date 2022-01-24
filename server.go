@@ -14,6 +14,7 @@ import (
 // Server is an ldap server that you can add mux (multiplexer) router to and
 // then run it to accept and process requests.
 type Server struct {
+	mu           sync.RWMutex
 	logger       hclog.Logger
 	connWg       sync.WaitGroup
 	listener     net.Listener
@@ -53,7 +54,6 @@ func NewServer(opt ...Option) (*Server, error) {
 		readTimeout:          opts.withReadTimeout,
 		disablePanicRecovery: opts.withDisablePanicRecovery,
 	}, nil
-
 }
 
 // Run will run the server which will listen and serve requests.
@@ -64,7 +64,9 @@ func (s *Server) Run(addr string, opt ...Option) error {
 	opts := getConfigOpts(opt...)
 
 	var err error
+	s.mu.Lock()
 	s.listener, err = net.Listen("tcp", addr)
+	s.mu.Unlock()
 	if err != nil {
 		return fmt.Errorf("%s: unable to listen to addr %s: %w", op, addr, err)
 	}
@@ -132,22 +134,24 @@ func (s *Server) Run(addr string, opt ...Option) error {
 }
 
 // Stop a running ldap server
-func (srv *Server) Stop() error {
+func (s *Server) Stop() error {
 	const op = "gldap.(Server).Stop"
-	if srv.listener == nil {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.listener == nil {
 		return fmt.Errorf("%s: no listener: %w", op, ErrInvalidState)
 	}
-	if srv.shutdownCancel == nil {
+	if s.shutdownCancel == nil {
 		return fmt.Errorf("%s: no shutdown context cancel func: %w", op, ErrInvalidState)
 	}
-	if err := srv.listener.Close(); err != nil {
+	if err := s.listener.Close(); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	srv.logger.Debug("shutting down")
-	srv.shutdownCancel()
-	srv.logger.Debug("waiting on connections to close")
-	srv.connWg.Wait()
-	srv.logger.Debug("stopped")
+	s.logger.Debug("shutting down")
+	s.shutdownCancel()
+	s.logger.Debug("waiting on connections to close")
+	s.connWg.Wait()
+	s.logger.Debug("stopped")
 	return nil
 }
 
