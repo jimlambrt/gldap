@@ -2,7 +2,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/jimlambrt/gldap/gldap.svg)](https://pkg.go.dev/github.com/jimlambrt/gldap)
  
 
-**This is a work in progress!  It is not ready for any sort of use yet, even development!**
+**This is a work in progress! I would only suggest using it for development and test.**
 
 <hr>
 
@@ -91,10 +91,10 @@ func bindHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 * StartTLS Requests
 * Bind Requests
   * Simple Auth (user/pass) 
+* Search Requests
 
 ### Near-term features 
 
-* Search Requests
 * Add Requests
 * Delete Requests
 * Modify Requests
