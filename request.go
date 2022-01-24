@@ -23,13 +23,13 @@ const (
 type Request struct {
 	ID int
 	// conn is needed this for cancellation among other things.
-	conn         *Conn
+	conn         *conn
 	message      Message
-	routeOp      RouteOperation
+	routeOp      routeOperation
 	extendedName ExtendedOperationName
 }
 
-func newRequest(id int, c *Conn, p *packet) (*Request, error) {
+func newRequest(id int, c *conn, p *packet) (*Request, error) {
 	const op = "gldap.newRequest"
 	if c == nil {
 		return nil, fmt.Errorf("%s: missing connection: %w", op, ErrInvalidParameter)
@@ -43,14 +43,14 @@ func newRequest(id int, c *Conn, p *packet) (*Request, error) {
 		return nil, fmt.Errorf("%s: unable to build message for request %d: %w", op, id, err)
 	}
 	var extendedName ExtendedOperationName
-	var routeOp RouteOperation
+	var routeOp routeOperation
 	switch v := m.(type) {
 	case *SimpleBindMessage:
-		routeOp = BindRoute
+		routeOp = bindRoute
 	case *SearchMessage:
-		routeOp = SearchRoute
+		routeOp = searchRouteOperation
 	case *ExtendedOperationMessage:
-		routeOp = ExtendedOperationRoute
+		routeOp = extendedRouteOperation
 		extendedName = v.Name
 	default:
 		return nil, fmt.Errorf("%s: %v is an unsupported route operation: %w", op, v, ErrInternal)

@@ -4,25 +4,25 @@ import (
 	"strings"
 )
 
-// RouteOperation represents the ldap operation for a route.
-type RouteOperation string
+// routeOperation represents the ldap operation for a route.
+type routeOperation string
 
 const (
-	// UndefinedRoute is an undefined operation.
-	UndefinedRoute RouteOperation = ""
+	// undefinedRouteOperation is an undefined operation.
+	undefinedRouteOperation routeOperation = ""
 
-	// BindRoute is a route supporting the bind operation
-	BindRoute RouteOperation = "bind"
+	// bindRoute is a route supporting the bind operation
+	bindRoute routeOperation = "bind"
 
-	// SearchRoute is a route supporting the search operation
-	SearchRoute RouteOperation = "search"
+	// searchRouteOperation is a route supporting the search operation
+	searchRouteOperation routeOperation = "search"
 
-	// ExtendedOperationRoute is a route supporting an extended operation
-	ExtendedOperationRoute RouteOperation = "extendedOperation"
+	// extendedRouteOperation is a route supporting an extended operation
+	extendedRouteOperation routeOperation = "extendedOperation"
 
-	// DefaultRoute is a default route which is used when there are no routes
+	// defaultRouteOperation is a default route which is used when there are no routes
 	// defined for a particular operation
-	DefaultRoute RouteOperation = "noRoute"
+	defaultRouteOperation routeOperation = "noRoute"
 )
 
 type HandlerFunc func(*ResponseWriter, *Request)
@@ -30,12 +30,12 @@ type HandlerFunc func(*ResponseWriter, *Request)
 type route interface {
 	match(req *Request) bool
 	handler() HandlerFunc
-	op() RouteOperation
+	op() routeOperation
 }
 
 type baseRoute struct {
 	h       HandlerFunc
-	routeOp RouteOperation
+	routeOp routeOperation
 	label   string
 }
 
@@ -43,7 +43,7 @@ func (r *baseRoute) handler() HandlerFunc {
 	return r.h
 }
 
-func (r *baseRoute) op() RouteOperation {
+func (r *baseRoute) op() routeOperation {
 	return r.routeOp
 }
 

@@ -35,7 +35,7 @@ func (m *Mux) Bind(bindFn HandlerFunc, opt ...Option) error {
 	r := &simpleBindRoute{
 		baseRoute: &baseRoute{
 			h:       bindFn,
-			routeOp: BindRoute,
+			routeOp: bindRoute,
 			label:   opts.withLabel,
 		},
 		authChoice: SimpleAuthChoice,
@@ -56,7 +56,7 @@ func (m *Mux) Search(searchFn HandlerFunc, opt ...Option) error {
 	r := &searchRoute{
 		baseRoute: &baseRoute{
 			h:       searchFn,
-			routeOp: SearchRoute,
+			routeOp: searchRouteOperation,
 			label:   opts.withLabel,
 		},
 		basedn: opts.withBaseDN,
@@ -79,7 +79,7 @@ func (m *Mux) ExtendedOperation(operationFn HandlerFunc, exName ExtendedOperatio
 	r := &extendedRoute{
 		baseRoute: &baseRoute{
 			h:       operationFn,
-			routeOp: ExtendedOperationRoute,
+			routeOp: extendedRouteOperation,
 			label:   opts.withLabel,
 		},
 		extendedName: exName,
@@ -99,7 +99,7 @@ func (m *Mux) DefaultRoute(noRouteFN HandlerFunc, opt ...Option) error {
 	}
 	r := &baseRoute{
 		h:       noRouteFN,
-		routeOp: BindRoute,
+		routeOp: bindRoute,
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
