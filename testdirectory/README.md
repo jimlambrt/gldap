@@ -17,17 +17,17 @@ Example:
 // unit test for your custom client.
 func TestDirectory_SimpleBindResponse(t *testing.T) {
 
-    // start a test directory running ldaps on an available free port (defaults)
-    // that allows anon binds (a default override)
+	// start a test directory running ldaps on an available free port (defaults)
+	// that allows anon binds (a default override)
 	td := testdirectory.Start(t,
 		testdirectory.WithDefaults(&testdirectory.Defaults{AllowAnonymousBind: true}),
 	)
-    // create some test new user entries (using defaults for ou, password, etc)
+	// create some test new user entries (using defaults for ou, password, etc)
 	users := testdirectory.NewUsers(t, []string{"alice", "bob"})
-    // set the test directories user entries
+	// set the test directories user entries
 	td.SetUsers(users...)
 
-    tests := []struct {
+	tests := []struct {
 		name     string
 		userName string
 		userPass string
@@ -49,11 +49,10 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 			userName: fmt.Sprintf("%s=alice,%s", testdirectory.DefaultUserAttr, testdirectory.DefaultUserDN),
 		},
 	}
-
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
-            // retrieve a client for the test directory.
+			// retrieve a client for the test directory.
 			client := td.Conn()
 			defer func() { client.Close() }()
 			var err error
@@ -63,7 +62,6 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 			default:
 				err = client.Bind(tc.userName, tc.userPass)
 			}
-
 			if tc.wantErr {
 				assert.Error(err)
 				return
