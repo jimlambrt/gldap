@@ -68,10 +68,10 @@ func (p *packet) requestPacket() (*packet, error) {
 	requestPacket := &packet{Packet: p.Children[childApplicationRequest]}
 
 	switch requestPacket.Packet.Tag {
-	case ldap.ApplicationExtendedRequest:
+	case ApplicationExtendedRequest:
 		// there is no version child.
 		// nada todo for now...
-	case ldap.ApplicationSearchRequest:
+	case ApplicationSearchRequest:
 		// nada to do.. no version child.. perhaps all this should be refactored?
 	default:
 		// assert it's ldap v3
@@ -98,11 +98,11 @@ func (p *packet) requestType() (requestType, error) {
 	}
 
 	switch requestPacket.Tag {
-	case ldap.ApplicationBindRequest:
+	case ApplicationBindRequest:
 		return bindRequestType, nil
-	case ldap.ApplicationSearchRequest:
+	case ApplicationSearchRequest:
 		return searchRequestType, nil
-	case ldap.ApplicationExtendedRequest:
+	case ApplicationExtendedRequest:
 		return extendedRequestType, nil
 	default:
 		return unknownRequestType, fmt.Errorf("%s: unhandled request type %d: %w", op, requestPacket.Tag, ErrInternal)
@@ -119,8 +119,8 @@ func (p *packet) extendedOperationName() (ExtendedOperationName, error) {
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	if requestPacket.Packet.Tag != ldap.ApplicationExtendedRequest {
-		return "", fmt.Errorf("%s: not an extended operation request, expected tag %d and got %d: %w", op, ldap.ApplicationExtendedRequest, requestPacket.Tag, ErrInvalidParameter)
+	if requestPacket.Packet.Tag != ApplicationExtendedRequest {
+		return "", fmt.Errorf("%s: not an extended operation request, expected tag %d and got %d: %w", op, ApplicationExtendedRequest, requestPacket.Tag, ErrInvalidParameter)
 	}
 	if err := requestPacket.assert(ber.ClassContext, ber.TypePrimitive, withTag(0), withAssertChild(childExtendedOperationName)); err != nil {
 		return "", fmt.Errorf("%s: missing/invalid username packet: %w", op, ErrInvalidParameter)
@@ -191,8 +191,8 @@ func (p *packet) searchParmeters() (*searchParameters, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	// validate that it's a search request
-	if requestPacket.Packet.Tag != ldap.ApplicationSearchRequest {
-		return nil, fmt.Errorf("%s: not an search request, expected tag %d and got %d: %w", op, ldap.ApplicationSearchRequest, requestPacket.Tag, ErrInvalidParameter)
+	if requestPacket.Packet.Tag != ApplicationSearchRequest {
+		return nil, fmt.Errorf("%s: not an search request, expected tag %d and got %d: %w", op, ApplicationSearchRequest, requestPacket.Tag, ErrInvalidParameter)
 	}
 	// baseDN child
 	if err := requestPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagOctetString), withAssertChild(childBaseDN)); err != nil {

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
-	"github.com/go-ldap/ldap/v3"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -87,7 +86,7 @@ func (c *conn) serveRequests() error {
 				routeOp:      routeOperation(ExtendedOperationDisconnection),
 				extendedName: ExtendedOperationDisconnection,
 			}
-			resp := req.NewResponse(WithResponseCode(ldap.LDAPResultUnwillingToPerform), WithDiagnosticMessage("server stopping"))
+			resp := req.NewResponse(WithResponseCode(LDAPResultUnwillingToPerform), WithDiagnosticMessage("server stopping"))
 			if err := w.Write(resp); err != nil {
 				return fmt.Errorf("%s: %w", op, err)
 			}

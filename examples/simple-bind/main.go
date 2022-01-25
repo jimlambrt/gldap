@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/go-ldap/ldap/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jimlambrt/gldap"
 )
@@ -45,7 +44,7 @@ func main() {
 
 func bindHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 	resp := r.NewBindResponse(
-		gldap.WithResponseCode(ldap.LDAPResultInvalidCredentials),
+		gldap.WithResponseCode(gldap.LDAPResultInvalidCredentials),
 	)
 	defer func() {
 		w.Write(resp)
@@ -58,7 +57,7 @@ func bindHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 	}
 
 	if m.UserName == "alice" {
-		resp.SetResultCode(ldap.LDAPResultSuccess)
+		resp.SetResultCode(gldap.LDAPResultSuccess)
 		log.Println("bind success")
 		return
 	}

@@ -3,7 +3,6 @@ package gldap
 import (
 	"testing"
 
-	"github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,18 +27,18 @@ func Test_WithMatchedDN(t *testing.T) {
 func Test_WithResponseCode(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	opts := getResponseOpts(WithResponseCode(ldap.LDAPResultNoSuchOperation))
+	opts := getResponseOpts(WithResponseCode(LDAPResultNoSuchOperation))
 	testOpts := responseDefaults()
-	testOpts.withResponseCode = intPtr(ldap.LDAPResultNoSuchOperation)
+	testOpts.withResponseCode = intPtr(LDAPResultNoSuchOperation)
 	assert.Equal(opts, testOpts)
 }
 
 func Test_WithApplicationCode(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	opts := getResponseOpts(WithApplicationCode(ldap.ApplicationAbandonRequest))
+	opts := getResponseOpts(WithApplicationCode(ApplicationAbandonRequest))
 	testOpts := responseDefaults()
-	testOpts.withApplicationCode = intPtr(ldap.ApplicationAbandonRequest)
+	testOpts.withApplicationCode = intPtr(ApplicationAbandonRequest)
 	assert.Equal(opts, testOpts)
 }
 
