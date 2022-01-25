@@ -27,9 +27,9 @@ func Test_WithMatchedDN(t *testing.T) {
 func Test_WithResponseCode(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	opts := getResponseOpts(WithResponseCode(LDAPResultNoSuchOperation))
+	opts := getResponseOpts(WithResponseCode(ResultNoSuchOperation))
 	testOpts := responseDefaults()
-	testOpts.withResponseCode = intPtr(LDAPResultNoSuchOperation)
+	testOpts.withResponseCode = intPtr(ResultNoSuchOperation)
 	assert.Equal(opts, testOpts)
 }
 

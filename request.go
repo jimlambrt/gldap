@@ -86,7 +86,7 @@ func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
 	const op = "gldap.NewBindResponse"
 	opts := getResponseOpts(opt...)
 	if opts.withResponseCode == nil {
-		opts.withResponseCode = intPtr(LDAPResultUnwillingToPerform)
+		opts.withResponseCode = intPtr(ResultUnwillingToPerform)
 	}
 	if opts.withApplicationCode == nil {
 		opts.withApplicationCode = intPtr(ApplicationExtendedResponse)
@@ -147,7 +147,7 @@ func (r *Request) GetSimpleBindMessage() (*SimpleBindMessage, error) {
 
 // NewSearchDoneResponse creates a new search done response.  If there are no
 // results found, then set the response code by adding the option
-// WithResponseCode(LDAPResultNoSuchObject)
+// WithResponseCode(ResultNoSuchObject)
 //
 // Supports options: WithResponseCode
 func (r *Request) NewSearchDoneResponse(opt ...Option) *SearchResponseDone {

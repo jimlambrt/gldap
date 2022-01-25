@@ -1,160 +1,160 @@
 package gldap
 
-// LDAP Result Codes
+//  Result Codes
 const (
-	LDAPResultSuccess                            = 0
-	LDAPResultOperationsError                    = 1
-	LDAPResultProtocolError                      = 2
-	LDAPResultTimeLimitExceeded                  = 3
-	LDAPResultSizeLimitExceeded                  = 4
-	LDAPResultCompareFalse                       = 5
-	LDAPResultCompareTrue                        = 6
-	LDAPResultAuthMethodNotSupported             = 7
-	LDAPResultStrongAuthRequired                 = 8
-	LDAPResultReferral                           = 10
-	LDAPResultAdminLimitExceeded                 = 11
-	LDAPResultUnavailableCriticalExtension       = 12
-	LDAPResultConfidentialityRequired            = 13
-	LDAPResultSaslBindInProgress                 = 14
-	LDAPResultNoSuchAttribute                    = 16
-	LDAPResultUndefinedAttributeType             = 17
-	LDAPResultInappropriateMatching              = 18
-	LDAPResultConstraintViolation                = 19
-	LDAPResultAttributeOrValueExists             = 20
-	LDAPResultInvalidAttributeSyntax             = 21
-	LDAPResultNoSuchObject                       = 32
-	LDAPResultAliasProblem                       = 33
-	LDAPResultInvalidDNSyntax                    = 34
-	LDAPResultIsLeaf                             = 35
-	LDAPResultAliasDereferencingProblem          = 36
-	LDAPResultInappropriateAuthentication        = 48
-	LDAPResultInvalidCredentials                 = 49
-	LDAPResultInsufficientAccessRights           = 50
-	LDAPResultBusy                               = 51
-	LDAPResultUnavailable                        = 52
-	LDAPResultUnwillingToPerform                 = 53
-	LDAPResultLoopDetect                         = 54
-	LDAPResultSortControlMissing                 = 60
-	LDAPResultOffsetRangeError                   = 61
-	LDAPResultNamingViolation                    = 64
-	LDAPResultObjectClassViolation               = 65
-	LDAPResultNotAllowedOnNonLeaf                = 66
-	LDAPResultNotAllowedOnRDN                    = 67
-	LDAPResultEntryAlreadyExists                 = 68
-	LDAPResultObjectClassModsProhibited          = 69
-	LDAPResultResultsTooLarge                    = 70
-	LDAPResultAffectsMultipleDSAs                = 71
-	LDAPResultVirtualListViewErrorOrControlError = 76
-	LDAPResultOther                              = 80
-	LDAPResultServerDown                         = 81
-	LDAPResultLocalError                         = 82
-	LDAPResultEncodingError                      = 83
-	LDAPResultDecodingError                      = 84
-	LDAPResultTimeout                            = 85
-	LDAPResultAuthUnknown                        = 86
-	LDAPResultFilterError                        = 87
-	LDAPResultUserCanceled                       = 88
-	LDAPResultParamError                         = 89
-	LDAPResultNoMemory                           = 90
-	LDAPResultConnectError                       = 91
-	LDAPResultNotSupported                       = 92
-	LDAPResultControlNotFound                    = 93
-	LDAPResultNoResultsReturned                  = 94
-	LDAPResultMoreResultsToReturn                = 95
-	LDAPResultClientLoop                         = 96
-	LDAPResultReferralLimitExceeded              = 97
-	LDAPResultInvalidResponse                    = 100
-	LDAPResultAmbiguousResponse                  = 101
-	LDAPResultTLSNotSupported                    = 112
-	LDAPResultIntermediateResponse               = 113
-	LDAPResultUnknownType                        = 114
-	LDAPResultCanceled                           = 118
-	LDAPResultNoSuchOperation                    = 119
-	LDAPResultTooLate                            = 120
-	LDAPResultCannotCancel                       = 121
-	LDAPResultAssertionFailed                    = 122
-	LDAPResultAuthorizationDenied                = 123
-	LDAPResultSyncRefreshRequired                = 4096
+	ResultSuccess                            = 0
+	ResultOperationsError                    = 1
+	ResultProtocolError                      = 2
+	ResultTimeLimitExceeded                  = 3
+	ResultSizeLimitExceeded                  = 4
+	ResultCompareFalse                       = 5
+	ResultCompareTrue                        = 6
+	ResultAuthMethodNotSupported             = 7
+	ResultStrongAuthRequired                 = 8
+	ResultReferral                           = 10
+	ResultAdminLimitExceeded                 = 11
+	ResultUnavailableCriticalExtension       = 12
+	ResultConfidentialityRequired            = 13
+	ResultSaslBindInProgress                 = 14
+	ResultNoSuchAttribute                    = 16
+	ResultUndefinedAttributeType             = 17
+	ResultInappropriateMatching              = 18
+	ResultConstraintViolation                = 19
+	ResultAttributeOrValueExists             = 20
+	ResultInvalidAttributeSyntax             = 21
+	ResultNoSuchObject                       = 32
+	ResultAliasProblem                       = 33
+	ResultInvalidDNSyntax                    = 34
+	ResultIsLeaf                             = 35
+	ResultAliasDereferencingProblem          = 36
+	ResultInappropriateAuthentication        = 48
+	ResultInvalidCredentials                 = 49
+	ResultInsufficientAccessRights           = 50
+	ResultBusy                               = 51
+	ResultUnavailable                        = 52
+	ResultUnwillingToPerform                 = 53
+	ResultLoopDetect                         = 54
+	ResultSortControlMissing                 = 60
+	ResultOffsetRangeError                   = 61
+	ResultNamingViolation                    = 64
+	ResultObjectClassViolation               = 65
+	ResultNotAllowedOnNonLeaf                = 66
+	ResultNotAllowedOnRDN                    = 67
+	ResultEntryAlreadyExists                 = 68
+	ResultObjectClassModsProhibited          = 69
+	ResultResultsTooLarge                    = 70
+	ResultAffectsMultipleDSAs                = 71
+	ResultVirtualListViewErrorOrControlError = 76
+	ResultOther                              = 80
+	ResultServerDown                         = 81
+	ResultLocalError                         = 82
+	ResultEncodingError                      = 83
+	ResultDecodingError                      = 84
+	ResultTimeout                            = 85
+	ResultAuthUnknown                        = 86
+	ResultFilterError                        = 87
+	ResultUserCanceled                       = 88
+	ResultParamError                         = 89
+	ResultNoMemory                           = 90
+	ResultConnectError                       = 91
+	ResultNotSupported                       = 92
+	ResultControlNotFound                    = 93
+	ResultNoResultsReturned                  = 94
+	ResultMoreResultsToReturn                = 95
+	ResultClientLoop                         = 96
+	ResultReferralLimitExceeded              = 97
+	ResultInvalidResponse                    = 100
+	ResultAmbiguousResponse                  = 101
+	ResultTLSNotSupported                    = 112
+	ResultIntermediateResponse               = 113
+	ResultUnknownType                        = 114
+	ResultCanceled                           = 118
+	ResultNoSuchOperation                    = 119
+	ResultTooLate                            = 120
+	ResultCannotCancel                       = 121
+	ResultAssertionFailed                    = 122
+	ResultAuthorizationDenied                = 123
+	ResultSyncRefreshRequired                = 4096
 )
 
-// LDAPResultCodeMap contains string descriptions for LDAP error codes
-var LDAPResultCodeMap = map[uint16]string{
-	LDAPResultSuccess:                            "Success",
-	LDAPResultOperationsError:                    "Operations Error",
-	LDAPResultProtocolError:                      "Protocol Error",
-	LDAPResultTimeLimitExceeded:                  "Time Limit Exceeded",
-	LDAPResultSizeLimitExceeded:                  "Size Limit Exceeded",
-	LDAPResultCompareFalse:                       "Compare False",
-	LDAPResultCompareTrue:                        "Compare True",
-	LDAPResultAuthMethodNotSupported:             "Auth Method Not Supported",
-	LDAPResultStrongAuthRequired:                 "Strong Auth Required",
-	LDAPResultReferral:                           "Referral",
-	LDAPResultAdminLimitExceeded:                 "Admin Limit Exceeded",
-	LDAPResultUnavailableCriticalExtension:       "Unavailable Critical Extension",
-	LDAPResultConfidentialityRequired:            "Confidentiality Required",
-	LDAPResultSaslBindInProgress:                 "Sasl Bind In Progress",
-	LDAPResultNoSuchAttribute:                    "No Such Attribute",
-	LDAPResultUndefinedAttributeType:             "Undefined Attribute Type",
-	LDAPResultInappropriateMatching:              "Inappropriate Matching",
-	LDAPResultConstraintViolation:                "Constraint Violation",
-	LDAPResultAttributeOrValueExists:             "Attribute Or Value Exists",
-	LDAPResultInvalidAttributeSyntax:             "Invalid Attribute Syntax",
-	LDAPResultNoSuchObject:                       "No Such Object",
-	LDAPResultAliasProblem:                       "Alias Problem",
-	LDAPResultInvalidDNSyntax:                    "Invalid DN Syntax",
-	LDAPResultIsLeaf:                             "Is Leaf",
-	LDAPResultAliasDereferencingProblem:          "Alias Dereferencing Problem",
-	LDAPResultInappropriateAuthentication:        "Inappropriate Authentication",
-	LDAPResultInvalidCredentials:                 "Invalid Credentials",
-	LDAPResultInsufficientAccessRights:           "Insufficient Access Rights",
-	LDAPResultBusy:                               "Busy",
-	LDAPResultUnavailable:                        "Unavailable",
-	LDAPResultUnwillingToPerform:                 "Unwilling To Perform",
-	LDAPResultLoopDetect:                         "Loop Detect",
-	LDAPResultSortControlMissing:                 "Sort Control Missing",
-	LDAPResultOffsetRangeError:                   "Result Offset Range Error",
-	LDAPResultNamingViolation:                    "Naming Violation",
-	LDAPResultObjectClassViolation:               "Object Class Violation",
-	LDAPResultResultsTooLarge:                    "Results Too Large",
-	LDAPResultNotAllowedOnNonLeaf:                "Not Allowed On Non Leaf",
-	LDAPResultNotAllowedOnRDN:                    "Not Allowed On RDN",
-	LDAPResultEntryAlreadyExists:                 "Entry Already Exists",
-	LDAPResultObjectClassModsProhibited:          "Object Class Mods Prohibited",
-	LDAPResultAffectsMultipleDSAs:                "Affects Multiple DSAs",
-	LDAPResultVirtualListViewErrorOrControlError: "Failed because of a problem related to the virtual list view",
-	LDAPResultOther:                              "Other",
-	LDAPResultServerDown:                         "Cannot establish a connection",
-	LDAPResultLocalError:                         "An error occurred",
-	LDAPResultEncodingError:                      "LDAP encountered an error while encoding",
-	LDAPResultDecodingError:                      "LDAP encountered an error while decoding",
-	LDAPResultTimeout:                            "LDAP timeout while waiting for a response from the server",
-	LDAPResultAuthUnknown:                        "The auth method requested in a bind request is unknown",
-	LDAPResultFilterError:                        "An error occurred while encoding the given search filter",
-	LDAPResultUserCanceled:                       "The user canceled the operation",
-	LDAPResultParamError:                         "An invalid parameter was specified",
-	LDAPResultNoMemory:                           "Out of memory error",
-	LDAPResultConnectError:                       "A connection to the server could not be established",
-	LDAPResultNotSupported:                       "An attempt has been made to use a feature not supported LDAP",
-	LDAPResultControlNotFound:                    "The controls required to perform the requested operation were not found",
-	LDAPResultNoResultsReturned:                  "No results were returned from the server",
-	LDAPResultMoreResultsToReturn:                "There are more results in the chain of results",
-	LDAPResultClientLoop:                         "A loop has been detected. For example when following referrals",
-	LDAPResultReferralLimitExceeded:              "The referral hop limit has been exceeded",
-	LDAPResultCanceled:                           "Operation was canceled",
-	LDAPResultNoSuchOperation:                    "Server has no knowledge of the operation requested for cancellation",
-	LDAPResultTooLate:                            "Too late to cancel the outstanding operation",
-	LDAPResultCannotCancel:                       "The identified operation does not support cancellation or the cancel operation cannot be performed",
-	LDAPResultAssertionFailed:                    "An assertion control given in the LDAP operation evaluated to false causing the operation to not be performed",
-	LDAPResultSyncRefreshRequired:                "Refresh Required",
-	LDAPResultInvalidResponse:                    "Invalid Response",
-	LDAPResultAmbiguousResponse:                  "Ambiguous Response",
-	LDAPResultTLSNotSupported:                    "Tls Not Supported",
-	LDAPResultIntermediateResponse:               "Intermediate Response",
-	LDAPResultUnknownType:                        "Unknown Type",
-	LDAPResultAuthorizationDenied:                "Authorization Denied",
+// ResultCodeMap contains string descriptions for  error codes
+var ResultCodeMap = map[uint16]string{
+	ResultSuccess:                            "Success",
+	ResultOperationsError:                    "Operations Error",
+	ResultProtocolError:                      "Protocol Error",
+	ResultTimeLimitExceeded:                  "Time Limit Exceeded",
+	ResultSizeLimitExceeded:                  "Size Limit Exceeded",
+	ResultCompareFalse:                       "Compare False",
+	ResultCompareTrue:                        "Compare True",
+	ResultAuthMethodNotSupported:             "Auth Method Not Supported",
+	ResultStrongAuthRequired:                 "Strong Auth Required",
+	ResultReferral:                           "Referral",
+	ResultAdminLimitExceeded:                 "Admin Limit Exceeded",
+	ResultUnavailableCriticalExtension:       "Unavailable Critical Extension",
+	ResultConfidentialityRequired:            "Confidentiality Required",
+	ResultSaslBindInProgress:                 "Sasl Bind In Progress",
+	ResultNoSuchAttribute:                    "No Such Attribute",
+	ResultUndefinedAttributeType:             "Undefined Attribute Type",
+	ResultInappropriateMatching:              "Inappropriate Matching",
+	ResultConstraintViolation:                "Constraint Violation",
+	ResultAttributeOrValueExists:             "Attribute Or Value Exists",
+	ResultInvalidAttributeSyntax:             "Invalid Attribute Syntax",
+	ResultNoSuchObject:                       "No Such Object",
+	ResultAliasProblem:                       "Alias Problem",
+	ResultInvalidDNSyntax:                    "Invalid DN Syntax",
+	ResultIsLeaf:                             "Is Leaf",
+	ResultAliasDereferencingProblem:          "Alias Dereferencing Problem",
+	ResultInappropriateAuthentication:        "Inappropriate Authentication",
+	ResultInvalidCredentials:                 "Invalid Credentials",
+	ResultInsufficientAccessRights:           "Insufficient Access Rights",
+	ResultBusy:                               "Busy",
+	ResultUnavailable:                        "Unavailable",
+	ResultUnwillingToPerform:                 "Unwilling To Perform",
+	ResultLoopDetect:                         "Loop Detect",
+	ResultSortControlMissing:                 "Sort Control Missing",
+	ResultOffsetRangeError:                   "Result Offset Range Error",
+	ResultNamingViolation:                    "Naming Violation",
+	ResultObjectClassViolation:               "Object Class Violation",
+	ResultResultsTooLarge:                    "Results Too Large",
+	ResultNotAllowedOnNonLeaf:                "Not Allowed On Non Leaf",
+	ResultNotAllowedOnRDN:                    "Not Allowed On RDN",
+	ResultEntryAlreadyExists:                 "Entry Already Exists",
+	ResultObjectClassModsProhibited:          "Object Class Mods Prohibited",
+	ResultAffectsMultipleDSAs:                "Affects Multiple DSAs",
+	ResultVirtualListViewErrorOrControlError: "Failed because of a problem related to the virtual list view",
+	ResultOther:                              "Other",
+	ResultServerDown:                         "Cannot establish a connection",
+	ResultLocalError:                         "An error occurred",
+	ResultEncodingError:                      " encountered an error while encoding",
+	ResultDecodingError:                      " encountered an error while decoding",
+	ResultTimeout:                            " timeout while waiting for a response from the server",
+	ResultAuthUnknown:                        "The auth method requested in a bind request is unknown",
+	ResultFilterError:                        "An error occurred while encoding the given search filter",
+	ResultUserCanceled:                       "The user canceled the operation",
+	ResultParamError:                         "An invalid parameter was specified",
+	ResultNoMemory:                           "Out of memory error",
+	ResultConnectError:                       "A connection to the server could not be established",
+	ResultNotSupported:                       "An attempt has been made to use a feature not supported ",
+	ResultControlNotFound:                    "The controls required to perform the requested operation were not found",
+	ResultNoResultsReturned:                  "No results were returned from the server",
+	ResultMoreResultsToReturn:                "There are more results in the chain of results",
+	ResultClientLoop:                         "A loop has been detected. For example when following referrals",
+	ResultReferralLimitExceeded:              "The referral hop limit has been exceeded",
+	ResultCanceled:                           "Operation was canceled",
+	ResultNoSuchOperation:                    "Server has no knowledge of the operation requested for cancellation",
+	ResultTooLate:                            "Too late to cancel the outstanding operation",
+	ResultCannotCancel:                       "The identified operation does not support cancellation or the cancel operation cannot be performed",
+	ResultAssertionFailed:                    "An assertion control given in the  operation evaluated to false causing the operation to not be performed",
+	ResultSyncRefreshRequired:                "Refresh Required",
+	ResultInvalidResponse:                    "Invalid Response",
+	ResultAmbiguousResponse:                  "Ambiguous Response",
+	ResultTLSNotSupported:                    "Tls Not Supported",
+	ResultIntermediateResponse:               "Intermediate Response",
+	ResultUnknownType:                        "Unknown Type",
+	ResultAuthorizationDenied:                "Authorization Denied",
 }
 
-// LDAP Application Codes
+//  Application Codes
 const (
 	ApplicationBindRequest           = 0
 	ApplicationBindResponse          = 1
@@ -178,8 +178,8 @@ const (
 	ApplicationExtendedResponse      = 24
 )
 
-// ApplicationMap contains human readable descriptions of LDAP Application Codes
-var ApplicationMap = map[uint8]string{
+// ApplicationCodeMap contains human readable descriptions of  Application Codes
+var ApplicationCodeMap = map[uint8]string{
 	ApplicationBindRequest:           "Bind Request",
 	ApplicationBindResponse:          "Bind Response",
 	ApplicationUnbindRequest:         "Unbind Request",

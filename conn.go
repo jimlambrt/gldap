@@ -86,7 +86,7 @@ func (c *conn) serveRequests() error {
 				routeOp:      routeOperation(ExtendedOperationDisconnection),
 				extendedName: ExtendedOperationDisconnection,
 			}
-			resp := req.NewResponse(WithResponseCode(LDAPResultUnwillingToPerform), WithDiagnosticMessage("server stopping"))
+			resp := req.NewResponse(WithResponseCode(ResultUnwillingToPerform), WithDiagnosticMessage("server stopping"))
 			if err := w.Write(resp); err != nil {
 				return fmt.Errorf("%s: %w", op, err)
 			}
