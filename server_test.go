@@ -120,6 +120,7 @@ func TestServer_shutdownCtx(t *testing.T) {
 		})
 		fakeT := &testdirectory.Logger{Logger: l}
 		td := testdirectory.Start(fakeT, testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}))
+		time.Sleep(5 * time.Millisecond)
 		go func() {
 			client := td.Conn()
 			defer client.Close()

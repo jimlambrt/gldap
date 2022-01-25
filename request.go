@@ -5,9 +5,10 @@ import (
 	"fmt"
 )
 
+// ExtendedOperationName is an extended operation request/response name
 type ExtendedOperationName string
 
-// Extended operation response/request name
+// Extended operation response/request names
 const (
 	ExtendedOperationDisconnection   ExtendedOperationName = "1.3.6.1.4.1.1466.2003"
 	ExtendedOperationCancel          ExtendedOperationName = "1.3.6.1.1.8"
@@ -18,8 +19,12 @@ const (
 	ExtendedOperationUnknown         ExtendedOperationName = "Unknown"
 )
 
+// Request represents an ldap request
 type Request struct {
+	// ID is the request number for a specific connection.  Every connection has
+	// its own request counter which starts at 1.
 	ID int
+
 	// conn is needed this for cancellation among other things.
 	conn         *conn
 	message      Message
@@ -33,7 +38,7 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 		return nil, fmt.Errorf("%s: missing connection: %w", op, ErrInvalidParameter)
 	}
 	if p == nil {
-		return nil, fmt.Errorf("%s: missing ber packet: %w", op, ErrInvalidParameter)
+		return nil, fmt.Errorf("%s: missing packet: %w", op, ErrInvalidParameter)
 	}
 
 	m, err := newMessage(p)
@@ -51,6 +56,8 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 		routeOp = extendedRouteOperation
 		extendedName = v.Name
 	default:
+		// this should be unreachable, since newMessage defaults to returning an
+		// *ExtendedOperationMessage
 		return nil, fmt.Errorf("%s: %v is an unsupported route operation: %w", op, v, ErrInternal)
 	}
 
@@ -80,8 +87,9 @@ func (r *Request) StartTLS(tlsconfig *tls.Config) error {
 	return nil
 }
 
-// NewResponse creates a general response (not tied to any specific request)
-// options supported: WithApplicationCode, WithDiagnosticMessage, WithMatchedDN
+// NewResponse creates a general response (not tied to any specific request).
+// Supported options: WithResponseCode, WithApplicationCode,
+// WithDiagnosticMessage, WithMatchedDN
 func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
 	const op = "gldap.NewBindResponse"
 	opts := getResponseOpts(opt...)
@@ -103,7 +111,7 @@ func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
 }
 
 // NewExtendedResponse creates a new extended response.
-// Supports options: WithResponseCode
+// Supported options: WithResponseCode
 func (r *Request) NewExtendedResponse(opt ...Option) *ExtendedResponse {
 	const op = "gldap.NewExtendedResponse"
 	opts := getResponseOpts(opt...)
@@ -119,7 +127,7 @@ func (r *Request) NewExtendedResponse(opt ...Option) *ExtendedResponse {
 }
 
 // NewBindResponse creates a new bind response.
-// Supports options: WithResponseCode
+// Supported options: WithResponseCode
 func (r *Request) NewBindResponse(opt ...Option) *BindResponse {
 	const op = "gldap.NewBindResponse"
 	opts := getResponseOpts(opt...)
@@ -149,7 +157,7 @@ func (r *Request) GetSimpleBindMessage() (*SimpleBindMessage, error) {
 // results found, then set the response code by adding the option
 // WithResponseCode(ResultNoSuchObject)
 //
-// Supports options: WithResponseCode
+// Supported options: WithResponseCode
 func (r *Request) NewSearchDoneResponse(opt ...Option) *SearchResponseDone {
 	const op = "gldap.(Request).NewSearchDoneResponse"
 	opts := getResponseOpts(opt...)
@@ -175,10 +183,7 @@ func (r *Request) GetSearchMessage() (*SearchMessage, error) {
 	return s, nil
 }
 
-func intPtr(i int) *int {
-	return &i
-}
-
+// NewSearchResponseEntry is a search response entry.
 // Supported options: WithAttributes
 func (r *Request) NewSearchResponseEntry(entryDN string, opt ...Option) *SearchResponseEntry {
 	opts := getResponseOpts(opt...)
@@ -195,4 +200,8 @@ func (r *Request) NewSearchResponseEntry(entryDN string, opt ...Option) *SearchR
 			Attributes: newAttrs,
 		},
 	}
+}
+
+func intPtr(i int) *int {
+	return &i
 }

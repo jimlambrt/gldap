@@ -45,6 +45,7 @@ func (m *Mux) Bind(bindFn HandlerFunc, opt ...Option) error {
 }
 
 // Search will register a handler for search requests.
+// Options supported: WithLabel, WithBaseDN, WithScope
 func (m *Mux) Search(searchFn HandlerFunc, opt ...Option) error {
 	const op = "gldap.(Mux).Search"
 	if searchFn == nil {
@@ -68,6 +69,7 @@ func (m *Mux) Search(searchFn HandlerFunc, opt ...Option) error {
 }
 
 // ExtendedOperation will register a handler for extended operation requests.
+// Options supported: WithLabel
 func (m *Mux) ExtendedOperation(operationFn HandlerFunc, exName ExtendedOperationName, opt ...Option) error {
 	const op = "gldap.(Mux).Search"
 	if operationFn == nil {
@@ -101,7 +103,7 @@ func (m *Mux) DefaultRoute(noRouteFN HandlerFunc, opt ...Option) error {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.routes = append(m.routes, r)
+	m.defaultRoute = r
 	return nil
 }
 

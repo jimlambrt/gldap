@@ -1,6 +1,6 @@
 package gldap
 
-//  Result Codes
+//  ldap result codes
 const (
 	ResultSuccess                            = 0
 	ResultOperationsError                    = 1
@@ -77,7 +77,7 @@ const (
 	ResultSyncRefreshRequired                = 4096
 )
 
-// ResultCodeMap contains string descriptions for  error codes
+// ResultCodeMap contains string descriptions for ldap result codes
 var ResultCodeMap = map[uint16]string{
 	ResultSuccess:                            "Success",
 	ResultOperationsError:                    "Operations Error",
@@ -154,7 +154,7 @@ var ResultCodeMap = map[uint16]string{
 	ResultAuthorizationDenied:                "Authorization Denied",
 }
 
-//  Application Codes
+//  ldap application codes
 const (
 	ApplicationBindRequest           = 0
 	ApplicationBindResponse          = 1
@@ -178,7 +178,7 @@ const (
 	ApplicationExtendedResponse      = 24
 )
 
-// ApplicationCodeMap contains human readable descriptions of  Application Codes
+// ApplicationCodeMap contains human readable descriptions of ldap application codes
 var ApplicationCodeMap = map[uint8]string{
 	ApplicationBindRequest:           "Bind Request",
 	ApplicationBindResponse:          "Bind Response",
