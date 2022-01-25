@@ -111,3 +111,5 @@ The `testdirectory` package built using `gldap` which provides an in-memory test
 LDAP service with capabilities which make writing tests that depend on an LDAP
 service much easier.  
 
+`testdirectory` is also a great working example of how you can use `gldap` to build a custom
+ldap server to meet your specific needs.
