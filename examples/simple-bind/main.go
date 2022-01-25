@@ -14,12 +14,12 @@ import (
 func main() {
 	// turn on debug logging
 	l := hclog.New(&hclog.LoggerOptions{
-		Name:  "test-logger",
+		Name:  "simple-bind-logger",
 		Level: hclog.Debug,
 	})
 
 	// create a new server
-	s, err := gldap.NewServer(gldap.WithLogger(l), gldap.WithDisablePanicRecovery(true))
+	s, err := gldap.NewServer(gldap.WithLogger(l), gldap.WithDisablePanicRecovery())
 	if err != nil {
 		log.Fatalf("unable to create server: %s", err.Error())
 	}

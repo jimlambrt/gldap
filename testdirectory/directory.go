@@ -105,7 +105,14 @@ func Start(t TestingT, opt ...Option) *Directory {
 	}
 
 	var err error
-	d.s, err = gldap.NewServer(gldap.WithLogger(opts.withLogger), gldap.WithDisablePanicRecovery(opts.withDisablePanicRecovery))
+	var srvOpts []gldap.Option
+	if opts.withLogger != nil {
+		srvOpts = append(srvOpts, gldap.WithLogger(opts.withLogger))
+	}
+	if opts.withDisablePanicRecovery {
+		srvOpts = append(srvOpts, gldap.WithDisablePanicRecovery())
+	}
+	d.s, err = gldap.NewServer(srvOpts...)
 	require.NoError(err)
 
 	mux, err := gldap.NewMux()
@@ -460,11 +467,11 @@ func (d *Directory) Conn() *ldap.Conn {
 	require := require.New(d.t)
 
 	if d.useTLS {
-		conn, err := ldap.DialURL(fmt.Sprintf("ldaps://127.0.0.1:%d", d.Port()), ldap.DialWithTLSConfig(d.client))
+		conn, err := ldap.DialURL(fmt.Sprintf("ldaps://localhost:%d", d.Port()), ldap.DialWithTLSConfig(d.client))
 		require.NoError(err)
 		return conn
 	}
-	conn, err := ldap.DialURL(fmt.Sprintf("ldap://127.0.0.1:%d", d.Port()))
+	conn, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", d.Port()))
 	require.NoError(err)
 	return conn
 }

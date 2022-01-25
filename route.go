@@ -11,8 +11,8 @@ const (
 	// undefinedRouteOperation is an undefined operation.
 	undefinedRouteOperation routeOperation = ""
 
-	// bindRoute is a route supporting the bind operation
-	bindRoute routeOperation = "bind"
+	// bindRouteOperation is a route supporting the bind operation
+	bindRouteOperation routeOperation = "bind"
 
 	// searchRouteOperation is a route supporting the search operation
 	searchRouteOperation routeOperation = "search"
@@ -72,7 +72,7 @@ func (r *simpleBindRoute) match(req *Request) bool {
 	if req == nil {
 		return false
 	}
-	if r.routeOp != req.routeOp {
+	if r.op() != req.routeOp {
 		return false
 	}
 	if m, ok := req.message.(*SimpleBindMessage); ok {
@@ -84,17 +84,27 @@ func (r *simpleBindRoute) match(req *Request) bool {
 }
 
 func (r *extendedRoute) match(req *Request) bool {
-	if r.routeOp != req.routeOp {
+	if req == nil {
+		return false
+	}
+	if r.op() != req.routeOp {
 		return false
 	}
 	if r.extendedName != req.extendedName {
+		return false
+	}
+	_, ok := req.message.(*ExtendedOperationMessage)
+	if !ok {
 		return false
 	}
 	return true
 }
 
 func (r *searchRoute) match(req *Request) bool {
-	if r.routeOp != req.routeOp {
+	if req == nil {
+		return false
+	}
+	if r.op() != req.routeOp {
 		return false
 	}
 	searchMsg, ok := req.message.(*SearchMessage)

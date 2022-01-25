@@ -38,7 +38,7 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 		return nil, fmt.Errorf("%s: missing ber packet: %w", op, ErrInvalidParameter)
 	}
 
-	m, err := NewMessage(p)
+	m, err := newMessage(p)
 	if err != nil {
 		return nil, fmt.Errorf("%s: unable to build message for request %d: %w", op, id, err)
 	}
@@ -46,7 +46,7 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 	var routeOp routeOperation
 	switch v := m.(type) {
 	case *SimpleBindMessage:
-		routeOp = bindRoute
+		routeOp = bindRouteOperation
 	case *SearchMessage:
 		routeOp = searchRouteOperation
 	case *ExtendedOperationMessage:
@@ -83,12 +83,15 @@ func (r *Request) StartTLS(tlsconfig *tls.Config) error {
 }
 
 // NewResponse creates a general response (not tied to any specific request)
-// options supported: WithDiagnosticMessage, WithMatchedDN
+// options supported: WithApplicationCode, WithDiagnosticMessage, WithMatchedDN
 func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
 	const op = "gldap.NewBindResponse"
 	opts := getResponseOpts(opt...)
 	if opts.withResponseCode == nil {
 		opts.withResponseCode = intPtr(ldap.LDAPResultUnwillingToPerform)
+	}
+	if opts.withApplicationCode == nil {
+		opts.withApplicationCode = intPtr(ldap.ApplicationExtendedResponse)
 	}
 	return &GeneralResponse{
 		baseResponse: &baseResponse{
@@ -97,6 +100,7 @@ func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
 			diagMessage: opts.withDiagnosticMessage,
 			matchedDN:   opts.withMatchedDN,
 		},
+		applicationCode: *opts.withApplicationCode,
 	}
 }
 

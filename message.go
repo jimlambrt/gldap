@@ -99,8 +99,8 @@ type ExtendedOperationMessage struct {
 	Value string
 }
 
-// NewMessage will create a new message from the packet.
-func NewMessage(p *packet) (Message, error) {
+// newMessage will create a new message from the packet.
+func newMessage(p *packet) (Message, error) {
 	const op = "gldap.NewMessage"
 
 	reqType, err := p.requestType()
