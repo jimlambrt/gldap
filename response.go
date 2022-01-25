@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
-	"github.com/go-ldap/ldap/v3"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -125,9 +124,9 @@ func (r *ExtendedResponse) packet() *packet {
 	replyPacket := beginResponse(r.messageID)
 
 	// a new packet for the bind response
-	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(ldap.ApplicationExtendedResponse), nil, ldap.ApplicationMap[ldap.ApplicationExtendedResponse])
+	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(ApplicationExtendedResponse), nil, ApplicationCodeMap[ApplicationExtendedResponse])
 	// append the result code to the bind response packet
-	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ldap.LDAPResultCodeMap[uint16(r.code)]))
+	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ResultCodeMap[uint16(r.code)]))
 
 	// Add optional diagnostic message and matched DN
 	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
@@ -145,9 +144,9 @@ func (r *BindResponse) packet() *packet {
 	replyPacket := beginResponse(r.messageID)
 
 	// a new packet for the bind response
-	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(ldap.ApplicationBindResponse), nil, ldap.ApplicationMap[ldap.ApplicationBindResponse])
+	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(ApplicationBindResponse), nil, ApplicationCodeMap[ApplicationBindResponse])
 	// append the result code to the bind response packet
-	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ldap.LDAPResultCodeMap[uint16(r.code)]))
+	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ResultCodeMap[uint16(r.code)]))
 
 	// Add optional diagnostic message and matched DN
 	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
@@ -167,9 +166,9 @@ func (r *GeneralResponse) packet() *packet {
 	replyPacket := beginResponse(r.messageID)
 
 	// a new packet for the bind response
-	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(r.applicationCode), nil, ldap.ApplicationMap[uint8(r.applicationCode)])
+	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ber.Tag(r.applicationCode), nil, ApplicationCodeMap[uint8(r.applicationCode)])
 	// append the result code to the bind response packet
-	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ldap.LDAPResultCodeMap[uint16(r.code)]))
+	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ResultCodeMap[uint16(r.code)]))
 
 	// Add optional diagnostic message and matched DN
 	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
@@ -187,8 +186,8 @@ func (r *SearchResponseDone) packet() *packet {
 	const op = "gldap.(SearchDoneResponse).packet"
 	replyPacket := beginResponse(r.messageID)
 
-	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ldap.ApplicationSearchResultDone, nil, ldap.ApplicationMap[ldap.ApplicationSearchResultDone])
-	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ldap.LDAPResultCodeMap[uint16(r.code)]))
+	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationSearchResultDone, nil, ApplicationCodeMap[ApplicationSearchResultDone])
+	resultPacket.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagEnumerated, r.code, ResultCodeMap[uint16(r.code)]))
 
 	// Add optional diagnostic message and matched DN
 	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
@@ -212,7 +211,7 @@ func (r *SearchResponseEntry) packet() *packet {
 	const op = "gldap.(SearchEntryResponse).packet"
 	replyPacket := beginResponse(r.messageID)
 
-	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ldap.ApplicationSearchResultEntry, nil, ldap.ApplicationMap[ldap.ApplicationSearchResultEntry])
+	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationSearchResultEntry, nil, ApplicationCodeMap[ApplicationSearchResultEntry])
 	resultPacket.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, r.entry.DN, "DN"))
 	attributesPacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attributes")
 	for _, a := range r.entry.Attributes {

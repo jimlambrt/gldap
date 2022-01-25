@@ -3,8 +3,6 @@ package gldap
 import (
 	"fmt"
 	"sync"
-
-	"github.com/go-ldap/ldap/v3"
 )
 
 // Mux is an ldap request multiplexer. It matches the inbound request against a
@@ -143,6 +141,6 @@ func (m *Mux) serve(w *ResponseWriter, req *Request) {
 		return
 	}
 	w.logger.Error("no matching handler found for request and returning internal error", "op", op, "connID", w.connID, "requestID", w.requestID, "routeOp", req.routeOp)
-	resp := req.NewResponse(WithResponseCode(ldap.LDAPResultUnwillingToPerform), WithDiagnosticMessage("No matching handler found"))
+	resp := req.NewResponse(WithResponseCode(ResultUnwillingToPerform), WithDiagnosticMessage("No matching handler found"))
 	_ = w.Write(resp)
 }

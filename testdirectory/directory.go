@@ -171,7 +171,7 @@ func (d *Directory) handleBind(t TestingT) func(w *gldap.ResponseWriter, r *glda
 	}
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
-		resp := r.NewBindResponse(gldap.WithResponseCode(ldap.LDAPResultInvalidCredentials))
+		resp := r.NewBindResponse(gldap.WithResponseCode(gldap.ResultInvalidCredentials))
 		defer func() {
 			_ = w.Write(resp)
 		}()
@@ -186,7 +186,7 @@ func (d *Directory) handleBind(t TestingT) func(w *gldap.ResponseWriter, r *glda
 			return
 		}
 		if m.Password == "" && d.allowAnonymousBind {
-			resp.SetResultCode(ldap.LDAPResultSuccess)
+			resp.SetResultCode(gldap.ResultSuccess)
 			return
 		}
 
@@ -196,7 +196,7 @@ func (d *Directory) handleBind(t TestingT) func(w *gldap.ResponseWriter, r *glda
 				d.logger.Debug("found bind user", "op", op, "DN", u.DN)
 				values := u.GetAttributeValues("password")
 				if len(values) > 0 && string(m.Password) == values[0] {
-					resp.SetResultCode(ldap.LDAPResultSuccess)
+					resp.SetResultCode(gldap.ResultSuccess)
 					return
 				}
 			}
@@ -226,13 +226,13 @@ func (d *Directory) handleStartTLS(t TestingT) func(w *gldap.ResponseWriter, r *
 	}
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
-		res := r.NewExtendedResponse(gldap.WithResponseCode(ldap.LDAPResultSuccess))
+		res := r.NewExtendedResponse(gldap.WithResponseCode(gldap.ResultSuccess))
 		res.SetResponseName(gldap.ExtendedOperationStartTLS)
 		w.Write(res)
 		if err := r.StartTLS(d.server); err != nil {
 			d.logger.Error("StartTLS Handshake error", "op", op, "err", err)
 			res.SetDiagnosticMessage(fmt.Sprintf("StartTLS Handshake error : \"%s\"", err.Error()))
-			res.SetResultCode(ldap.LDAPResultOperationsError)
+			res.SetResultCode(gldap.ResultOperationsError)
 			w.Write(res)
 			return
 		}
@@ -247,7 +247,7 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 	}
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
-		res := r.NewSearchDoneResponse(gldap.WithResponseCode(ldap.LDAPResultNoSuchObject))
+		res := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
 		defer w.Write(res)
 		m, err := r.GetSearchMessage()
 		if err != nil {
@@ -288,7 +288,7 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 				w.Write(result)
 			}
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
-			res.SetResultCode(ldap.LDAPResultSuccess)
+			res.SetResultCode(gldap.ResultSuccess)
 			return
 		}
 
@@ -317,7 +317,7 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 		}
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
-			res.SetResultCode(ldap.LDAPResultSuccess)
+			res.SetResultCode(gldap.ResultSuccess)
 		}
 	}
 }
@@ -329,7 +329,7 @@ func (d *Directory) handleSearchGroups(t TestingT) func(w *gldap.ResponseWriter,
 	}
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
-		res := r.NewSearchDoneResponse(gldap.WithResponseCode(ldap.LDAPResultNoSuchObject))
+		res := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
 		defer w.Write(res)
 		m, err := r.GetSearchMessage()
 		if err != nil {
@@ -362,7 +362,7 @@ func (d *Directory) handleSearchGroups(t TestingT) func(w *gldap.ResponseWriter,
 
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
-			res.SetResultCode(ldap.LDAPResultSuccess)
+			res.SetResultCode(gldap.ResultSuccess)
 		}
 	}
 }
@@ -374,7 +374,7 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 	}
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
-		res := r.NewSearchDoneResponse(gldap.WithResponseCode(ldap.LDAPResultNoSuchObject))
+		res := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
 		defer w.Write(res)
 		m, err := r.GetSearchMessage()
 		if err != nil {
@@ -398,7 +398,7 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 		}
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
-			res.SetResultCode(ldap.LDAPResultSuccess)
+			res.SetResultCode(gldap.ResultSuccess)
 		}
 	}
 }

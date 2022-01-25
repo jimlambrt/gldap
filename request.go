@@ -3,8 +3,6 @@ package gldap
 import (
 	"crypto/tls"
 	"fmt"
-
-	"github.com/go-ldap/ldap/v3"
 )
 
 type ExtendedOperationName string
@@ -88,10 +86,10 @@ func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
 	const op = "gldap.NewBindResponse"
 	opts := getResponseOpts(opt...)
 	if opts.withResponseCode == nil {
-		opts.withResponseCode = intPtr(ldap.LDAPResultUnwillingToPerform)
+		opts.withResponseCode = intPtr(ResultUnwillingToPerform)
 	}
 	if opts.withApplicationCode == nil {
-		opts.withApplicationCode = intPtr(ldap.ApplicationExtendedResponse)
+		opts.withApplicationCode = intPtr(ApplicationExtendedResponse)
 	}
 	return &GeneralResponse{
 		baseResponse: &baseResponse{
@@ -149,7 +147,7 @@ func (r *Request) GetSimpleBindMessage() (*SimpleBindMessage, error) {
 
 // NewSearchDoneResponse creates a new search done response.  If there are no
 // results found, then set the response code by adding the option
-// WithResponseCode(ldap.LDAPResultNoSuchObject)
+// WithResponseCode(ResultNoSuchObject)
 //
 // Supports options: WithResponseCode
 func (r *Request) NewSearchDoneResponse(opt ...Option) *SearchResponseDone {

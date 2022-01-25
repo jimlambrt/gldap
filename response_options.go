@@ -54,10 +54,10 @@ func WithResponseCode(code int) Option {
 // WithApplicationCode specifies the ldap application code.  For a list of valid codes
 // for a list of supported application codes see:
 // https://github.com/go-ldap/ldap/blob/13008e4c5260d08625b65eb1f172ae909152b751/v3/ldap.go#L11
-func WithApplicationCode(ldapApplicationCode int) Option {
+func WithApplicationCode(applicationCode int) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*responseOptions); ok {
-			o.withApplicationCode = &ldapApplicationCode
+			o.withApplicationCode = &applicationCode
 		}
 	}
 }
