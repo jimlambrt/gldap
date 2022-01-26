@@ -15,6 +15,7 @@ import (
 )
 
 func TestServer_Run(t *testing.T) {
+	t.Parallel()
 	testLogger := hclog.New(&hclog.LoggerOptions{
 		Name:  "TestServer_Run-logger",
 		Level: hclog.Error,
@@ -114,6 +115,7 @@ func TestServer_Run(t *testing.T) {
 }
 
 func TestServer_shutdownCtx(t *testing.T) {
+	t.Parallel()
 	t.Run("conn-serveRequests", func(t *testing.T) {
 		// testing that conn.serveRequests properly handles checking the
 		// shutdownCtx when handling requests for a conn
@@ -142,6 +144,7 @@ func TestServer_shutdownCtx(t *testing.T) {
 }
 
 func TestServer_Router(t *testing.T) {
+	t.Parallel()
 	testServer, err := gldap.NewServer()
 	require.NoError(t, err)
 	tests := []struct {

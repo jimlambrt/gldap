@@ -55,6 +55,8 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 	case *ExtendedOperationMessage:
 		routeOp = extendedRouteOperation
 		extendedName = v.Name
+	case *ModifyMessage:
+		routeOp = modifyRouteOperation
 	default:
 		// this should be unreachable, since newMessage defaults to returning an
 		// *ExtendedOperationMessage
@@ -69,6 +71,20 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 		extendedName: extendedName,
 	}
 	return r, nil
+}
+
+// NewModifyResponse creates a modify response
+// Supported options: WithResponseCode, WithDiagnosticMessage, WithMatchedDN
+func (r *Request) NewModifyResponse(opt ...Option) *ModifyResponse {
+	opts := getResponseOpts(opt...)
+	return &ModifyResponse{
+		GeneralResponse: r.NewResponse(
+			WithApplicationCode(ApplicationModifyResponse),
+			WithResponseCode(*opts.withResponseCode),
+			WithDiagnosticMessage(opts.withDiagnosticMessage),
+			WithMatchedDN(opts.withMatchedDN),
+		),
+	}
 }
 
 // StartTLS will start a TLS connection using the Message's existing connection
@@ -87,7 +103,8 @@ func (r *Request) StartTLS(tlsconfig *tls.Config) error {
 	return nil
 }
 
-// NewResponse creates a general response (not tied to any specific request).
+// NewResponse creates a general response (not necessarily to any specific
+// request because you can set WithApplicationCode).
 // Supported options: WithResponseCode, WithApplicationCode,
 // WithDiagnosticMessage, WithMatchedDN
 func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
@@ -176,11 +193,11 @@ func (r *Request) NewSearchDoneResponse(opt ...Option) *SearchResponseDone {
 // allows you handle the request based on the message attributes.
 func (r *Request) GetSearchMessage() (*SearchMessage, error) {
 	const op = "gldap.(Request).GetSearchMessage"
-	s, ok := r.message.(*SearchMessage)
+	m, ok := r.message.(*SearchMessage)
 	if !ok {
 		return nil, fmt.Errorf("%s: %T not a search request: %w", op, r.message, ErrInvalidParameter)
 	}
-	return s, nil
+	return m, nil
 }
 
 // NewSearchResponseEntry is a search response entry.
@@ -189,7 +206,7 @@ func (r *Request) NewSearchResponseEntry(entryDN string, opt ...Option) *SearchR
 	opts := getResponseOpts(opt...)
 	newAttrs := make([]*EntryAttribute, 0, len(opts.withAttributes))
 	for name, values := range opts.withAttributes {
-		newAttrs = append(newAttrs, newEntryAttribute(name, values))
+		newAttrs = append(newAttrs, NewEntryAttribute(name, values))
 	}
 	return &SearchResponseEntry{
 		baseResponse: &baseResponse{
@@ -200,6 +217,17 @@ func (r *Request) NewSearchResponseEntry(entryDN string, opt ...Option) *SearchR
 			Attributes: newAttrs,
 		},
 	}
+}
+
+// GetModifyMessage retrieves the ModifyMessage from the request, which
+// allows you handle the request based on the message attributes.
+func (r *Request) GetModifyMessage() (*ModifyMessage, error) {
+	const op = "gldap.(Request).GetModifyMessage"
+	m, ok := r.message.(*ModifyMessage)
+	if !ok {
+		return nil, fmt.Errorf("%s: %T not a modify request: %w", op, r.message, ErrInvalidParameter)
+	}
+	return m, nil
 }
 
 func intPtr(i int) *int {

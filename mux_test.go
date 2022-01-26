@@ -16,6 +16,7 @@ import (
 )
 
 func TestMux_serve(t *testing.T) {
+	t.Parallel()
 	t.Run("no-matching-handler", func(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
 		var buf bytes.Buffer

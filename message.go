@@ -41,6 +41,7 @@ const (
 	bindRequestType     requestType = "bind"
 	searchRequestType   requestType = "search"
 	extendedRequestType requestType = "extended"
+	modifyRequestType   requestType = "modify"
 )
 
 // Message defines a common interface for all messages
@@ -157,6 +158,19 @@ func newMessage(p *packet) (Message, error) {
 				id: msgID,
 			},
 			Name: opName,
+		}, nil
+	case modifyRequestType:
+		parameters, err := p.modifyParameters()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		return &ModifyMessage{
+			baseMessage: baseMessage{
+				id: msgID,
+			},
+			DN:       parameters.dn,
+			Changes:  parameters.changes,
+			Controls: parameters.controls,
 		}, nil
 	default:
 		return &ExtendedOperationMessage{

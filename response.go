@@ -204,7 +204,7 @@ type SearchResponseEntry struct {
 
 // AddAttribute will an attributes to the response entry
 func (r *SearchResponseEntry) AddAttribute(name string, values []string) {
-	r.entry.Attributes = append(r.entry.Attributes, newEntryAttribute(name, values))
+	r.entry.Attributes = append(r.entry.Attributes, NewEntryAttribute(name, values))
 }
 
 func (r *SearchResponseEntry) packet() *packet {
@@ -224,4 +224,9 @@ func (r *SearchResponseEntry) packet() *packet {
 
 	replyPacket.AppendChild(resultPacket)
 	return &packet{Packet: replyPacket}
+}
+
+// ModifyResponse is a response to a modify request.
+type ModifyResponse struct {
+	*GeneralResponse
 }

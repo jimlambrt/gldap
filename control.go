@@ -1,6 +1,9 @@
 package gldap
 
-import ber "github.com/go-asn1-ber/asn1-ber"
+import (
+	ber "github.com/go-asn1-ber/asn1-ber"
+	"github.com/go-ldap/ldap/v3"
+)
 
 // Control defines a common interface for all ldap controls
 type Control interface {
@@ -18,4 +21,9 @@ func encodeControls(controls []Control) *ber.Packet {
 		packet.AppendChild(control.Encode())
 	}
 	return packet
+}
+
+func decodeControl(packet *ber.Packet) (Control, error) {
+	c, err := ldap.DecodeControl(packet)
+	return c, err
 }
