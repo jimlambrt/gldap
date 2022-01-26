@@ -15,14 +15,15 @@ import (
 // Server is an ldap server that you can add a mux (multiplexer) router to and
 // then run it to accept and process requests.
 type Server struct {
-	mu           sync.RWMutex
-	logger       hclog.Logger
-	connWg       sync.WaitGroup
-	listener     net.Listener
-	router       *Mux
-	tlsConfig    *tls.Config
-	readTimeout  time.Duration
-	writeTimeout time.Duration
+	mu            sync.RWMutex
+	logger        hclog.Logger
+	connWg        sync.WaitGroup
+	listener      net.Listener
+	listenerReady bool
+	router        *Mux
+	tlsConfig     *tls.Config
+	readTimeout   time.Duration
+	writeTimeout  time.Duration
 
 	disablePanicRecovery bool
 	shutdownCancel       context.CancelFunc
@@ -67,6 +68,7 @@ func (s *Server) Run(addr string, opt ...Option) error {
 	var err error
 	s.mu.Lock()
 	s.listener, err = net.Listen("tcp", addr)
+	s.listenerReady = true
 	s.mu.Unlock()
 	if err != nil {
 		return fmt.Errorf("%s: unable to listen to addr %s: %w", op, addr, err)
@@ -139,11 +141,18 @@ func (s *Server) Run(addr string, opt ...Option) error {
 	}
 }
 
+// Ready will return true when the server is ready to accept connection
+func (s *Server) Ready() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.listenerReady
+}
+
 // Stop a running ldap server
 func (s *Server) Stop() error {
 	const op = "gldap.(Server).Stop"
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	if s.listener == nil {
 		return fmt.Errorf("%s: no listener: %w", op, ErrInvalidState)
 	}

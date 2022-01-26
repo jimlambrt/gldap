@@ -32,7 +32,12 @@ func TestMux_serve(t *testing.T) {
 			assert.NoError(err)
 		}()
 		defer s.Stop()
-		time.Sleep(1 * time.Millisecond)
+		for {
+			time.Sleep(100 * time.Nanosecond)
+			if s.Ready() {
+				break
+			}
+		}
 		client, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", port))
 		require.NoError(err)
 		defer client.Close()
@@ -65,7 +70,12 @@ func TestMux_serve(t *testing.T) {
 			assert.NoError(err)
 		}()
 		defer s.Stop()
-		time.Sleep(1 * time.Millisecond)
+		for {
+			time.Sleep(100 * time.Nanosecond)
+			if s.Ready() {
+				break
+			}
+		}
 		client, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", port))
 		require.NoError(err)
 		defer client.Close()
