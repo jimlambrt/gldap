@@ -1,6 +1,8 @@
 package gldap
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Scope represents the scope of a search (see: https://ldap.com/the-ldap-search-operation/)
 type Scope int64
@@ -43,6 +45,7 @@ const (
 
 // Message defines a common interface for all messages
 type Message interface {
+	// GetID returns the message ID
 	GetID() int64
 }
 
@@ -57,7 +60,7 @@ func (m baseMessage) GetID() int64 { return m.id }
 // SearchMessage is a search request message
 type SearchMessage struct {
 	baseMessage
-	// BaseObject for the request
+	// BaseDN for the request
 	BaseDN string
 	// Scope of the request
 	Scope Scope
@@ -76,8 +79,6 @@ type SearchMessage struct {
 	// Controls requested
 	Controls []Control
 }
-
-type Control string
 
 // SimpleBindMesssage is a simple bind request message
 type SimpleBindMessage struct {

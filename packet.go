@@ -48,7 +48,11 @@ func (p *packet) requestMessageID() (int64, error) {
 	if err := msgIdPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagInteger)); err != nil {
 		return 0, fmt.Errorf("%s: missing/invalid packet: %w", op, err)
 	}
-	return msgIdPacket.Value.(int64), nil
+	id, ok := msgIdPacket.Value.(int64)
+	if !ok {
+		return 0, fmt.Errorf("%s: expected int64 message ID and got %t: %w", op, msgIdPacket.Value, ErrInvalidParameter)
+	}
+	return id, nil
 }
 
 func (p *packet) requestPacket() (*packet, error) {
@@ -306,6 +310,7 @@ func (p *packet) assert(cl ber.Class, ty ber.Type, opt ...Option) error {
 	return nil
 }
 
+// Log will pretty print log a packet
 func (p *packet) Log(out io.Writer, indent int, printBytes bool) {
 	indent_str := ""
 

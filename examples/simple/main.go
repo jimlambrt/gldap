@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/jimlambrt/gldap"
@@ -29,7 +30,7 @@ func main() {
 		log.Fatalf("unable to create router: %s", err.Error())
 	}
 	r.Bind(bindHandler)
-	r.Search(searchHandler)
+	r.Search(searchHandler, gldap.WithLabel("All Searches"))
 	s.Router(r)
 	go s.Run(":10389") // listen on port 10389
 
@@ -64,7 +65,7 @@ func bindHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 }
 
 func searchHandler(w *gldap.ResponseWriter, r *gldap.Request) {
-	resp := r.NewSearchDoneResponse()
+	resp := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
 	defer func() {
 		w.Write(resp)
 	}()
@@ -77,5 +78,34 @@ func searchHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 	log.Printf("search scope: %d", m.Scope)
 	log.Printf("search filter: %s", m.Filter)
 
+	if strings.Contains(m.Filter, "uid=alice") || m.BaseDN == "uid=alice,ou=people,cn=example,dc=org" {
+		entry := r.NewSearchResponseEntry(
+			"uid=alice,ou=people,cn=example,dc=org",
+			gldap.WithAttributes(map[string][]string{
+				"objectclass": {"top", "person", "organizationalPerson", "inetOrgPerson"},
+				"uid":         {"alice"},
+				"cn":          {"alice eve smith"},
+				"givenname":   {"alice"},
+				"sn":          {"smith"},
+				"ou":          {"people"},
+				"description": {"friend of Rivest, Shamir and Adleman"},
+				"password":    {"{SSHA}U3waGJVC7MgXYc0YQe7xv7sSePuTP8zN"},
+			}),
+		)
+		entry.AddAttribute("email", []string{"alice@example.org"})
+		w.Write(entry)
+		resp.SetResultCode(gldap.ResultSuccess)
+	}
+	if m.BaseDN == "ou=people,cn=example,dc=org" {
+		entry := r.NewSearchResponseEntry(
+			"ou=people,cn=example,dc=org",
+			gldap.WithAttributes(map[string][]string{
+				"objectclass": {"organizationalUnit"},
+				"ou":          {"people"},
+			}),
+		)
+		w.Write(entry)
+		resp.SetResultCode(gldap.ResultSuccess)
+	}
 	return
 }

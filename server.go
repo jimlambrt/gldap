@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -88,9 +89,12 @@ func (s *Server) Run(addr string, opt ...Option) error {
 		default:
 			// need a default to fall through to rest of loop...
 		}
-
 		c, err := s.listener.Accept()
 		if err != nil {
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				s.logger.Debug("accept on closed conn")
+				return nil
+			}
 			return fmt.Errorf("%s: error accepting conn: %w", op, err)
 		}
 		s.logger.Debug("new connection accepted", "op", op, "conn", connID)
