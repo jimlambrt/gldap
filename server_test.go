@@ -86,9 +86,12 @@ func TestServer_Run(t *testing.T) {
 				s.Run(fmt.Sprintf(":%d", port), tc.runOpts...)
 			}()
 			t.Cleanup(func() { err := s.Stop(); assert.NoError(err) })
-			// need a bit of a pause to get the service up and running, otherwise we'll
-			// get a connection error because the service isn't listening yet.
-			time.Sleep(10 * time.Millisecond)
+			for {
+				time.Sleep(100 * time.Nanosecond)
+				if s.Ready() {
+					break
+				}
+			}
 
 			var dialOpts []ldap.DialOpt
 			if tc.clientTLS != nil {
@@ -120,7 +123,6 @@ func TestServer_shutdownCtx(t *testing.T) {
 		})
 		fakeT := &testdirectory.Logger{Logger: l}
 		td := testdirectory.Start(fakeT, testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}))
-		time.Sleep(5 * time.Millisecond)
 		go func() {
 			client := td.Conn()
 			defer client.Close()

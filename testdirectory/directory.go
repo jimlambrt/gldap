@@ -151,7 +151,12 @@ func Start(t TestingT, opt ...Option) *Directory {
 	}
 	// need a bit of a pause to get the service up and running, otherwise we'll
 	// get a connection error because the service isn't listening yet.
-	time.Sleep(10 * time.Millisecond)
+	for {
+		time.Sleep(100 * time.Nanosecond)
+		if d.s.Ready() {
+			break
+		}
+	}
 	return d
 }
 
