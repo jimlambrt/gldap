@@ -169,6 +169,7 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 }
 
 func TestDirectory_SearchUsersResponse(t *testing.T) {
+	t.Parallel()
 	testLogger := hclog.New(&hclog.LoggerOptions{
 		Name:  "TestDirectory_SearchUsersResponse-logger",
 		Level: hclog.Error,
@@ -275,6 +276,151 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 				return
 			}
 			assert.NoError(err)
+		})
+	}
+}
+
+func TestDirectory_ModifyResponse(t *testing.T) {
+	t.Parallel()
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  "TestDirectory_ModifyResponse-logger",
+		Level: hclog.Error,
+	})
+	td := testdirectory.Start(t,
+		testdirectory.WithLogger(t, testLogger),
+		testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}),
+	)
+	users := testdirectory.NewUsers(t, []string{"alice", "bob", "eve"})
+	td.SetUsers(users...)
+
+	const (
+		alice = 0
+		bob   = 1
+		eve   = 2
+	)
+
+	tests := []struct {
+		name            string
+		dn              string
+		changes         []ldap.Change
+		wantEntry       *gldap.Entry
+		wantErr         bool
+		wantErrContains string
+	}{
+		{
+			name: "alice-add-description",
+			dn:   users[alice].DN,
+			changes: []ldap.Change{
+				{
+					Operation: ldap.AddAttribute,
+					Modification: ldap.PartialAttribute{
+						Type: "description",
+						Vals: []string{"test-add-attribute"},
+					},
+				},
+			},
+			wantEntry: &gldap.Entry{
+				DN: users[alice].DN,
+				Attributes: func() []*gldap.EntryAttribute {
+					attrs := append([]*gldap.EntryAttribute{}, users[alice].Attributes...)
+					attrs = append(attrs, gldap.NewEntryAttribute("description", []string{"\x04\x12test-add-attribute"}))
+					return attrs
+				}(),
+			},
+		},
+		{
+			name: "bob-replace-email",
+			dn:   users[bob].DN,
+			changes: []ldap.Change{
+				{
+					Operation: ldap.ReplaceAttribute,
+					Modification: ldap.PartialAttribute{
+						Type: "email",
+						Vals: []string{"bobs-new-email@example.com"},
+					},
+				},
+			},
+			wantEntry: &gldap.Entry{
+				DN: users[bob].DN,
+				Attributes: func() []*gldap.EntryAttribute {
+					attrs := make([]*gldap.EntryAttribute, 0, len(users[bob].Attributes)-1)
+					for _, a := range users[bob].Attributes {
+						if a.Name == "email" {
+							a.Values = []string{"bobs-new-email@example.com"}
+						}
+						attrs = append(attrs, a)
+					}
+					return attrs
+				}(),
+			},
+		},
+		{
+			name: "eve-remove-email",
+			dn:   users[eve].DN,
+			changes: []ldap.Change{
+				{
+					Operation: ldap.DeleteAttribute,
+					Modification: ldap.PartialAttribute{
+						Type: "email",
+					},
+				},
+			},
+			wantEntry: &gldap.Entry{
+				DN: users[eve].DN,
+				Attributes: func() []*gldap.EntryAttribute {
+					attrs := make([]*gldap.EntryAttribute, 0, len(users[eve].Attributes)-1)
+					for _, a := range users[eve].Attributes {
+						if a.Name == "email" {
+							continue
+						}
+						attrs = append(attrs, a)
+					}
+					return attrs
+				}(),
+			},
+		},
+		{
+			name: "not-found",
+			dn:   "uid=not-found,ou=people,dc=example,dc=com",
+			changes: []ldap.Change{
+				{
+					Operation: ldap.DeleteAttribute,
+					Modification: ldap.PartialAttribute{
+						Type: "email",
+					},
+				},
+			},
+			wantErr:         true,
+			wantErrContains: "No Such Object",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			client := td.Conn()
+			defer func() { client.Close() }()
+			err := client.Modify(&ldap.ModifyRequest{
+				DN:      tc.dn,
+				Changes: tc.changes,
+			})
+			if tc.wantErr {
+				require.Error(err)
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			result, err := client.Search(&ldap.SearchRequest{
+				BaseDN: tc.dn,
+				Filter: fmt.Sprintf("(%s)", tc.dn),
+			})
+			require.NoError(err)
+			assert.Equal(len(tc.wantEntry.Attributes), len(result.Entries[0].Attributes))
+			assert.Equal(tc.wantEntry.DN, result.Entries[0].DN)
+			for _, a := range tc.wantEntry.Attributes {
+				assert.Equal(tc.wantEntry.GetAttributeValues(a.Name), result.Entries[0].GetAttributeValues(a.Name))
+			}
 		})
 	}
 }

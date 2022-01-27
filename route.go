@@ -20,6 +20,9 @@ const (
 	// extendedRouteOperation is a route supporting an extended operation
 	extendedRouteOperation routeOperation = "extendedOperation"
 
+	// modifyRouteOperation is a route supporting the modify operation
+	modifyRouteOperation routeOperation = "modify"
+
 	// defaultRouteOperation is a default route which is used when there are no routes
 	// defined for a particular operation
 	defaultRouteOperation routeOperation = "noRoute"
@@ -66,6 +69,20 @@ type simpleBindRoute struct {
 type extendedRoute struct {
 	*baseRoute
 	extendedName ExtendedOperationName
+}
+
+type modifyRoute struct {
+	*baseRoute
+}
+
+func (r *modifyRoute) match(req *Request) bool {
+	if req == nil {
+		return false
+	}
+	if r.op() != req.routeOp {
+		return false
+	}
+	return true
 }
 
 func (r *simpleBindRoute) match(req *Request) bool {

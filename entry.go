@@ -1,7 +1,9 @@
 package gldap
 
 import (
+	"fmt"
 	"sort"
+	"strings"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 )
@@ -36,12 +38,25 @@ func NewEntry(dn string, attributes map[string][]string) *Entry {
 
 	var encodedAttributes []*EntryAttribute
 	for _, attributeName := range attributeNames {
-		encodedAttributes = append(encodedAttributes, newEntryAttribute(attributeName, attributes[attributeName]))
+		encodedAttributes = append(encodedAttributes, NewEntryAttribute(attributeName, attributes[attributeName]))
 	}
 	return &Entry{
 		DN:         dn,
 		Attributes: encodedAttributes,
 	}
+}
+
+// PrettyPrint outputs a human-readable description indenting
+func (e *Entry) PrettyPrint(indent int) {
+	fmt.Printf("%sDN: %s\n", strings.Repeat(" ", indent), e.DN)
+	for _, attr := range e.Attributes {
+		attr.PrettyPrint(indent + 2)
+	}
+}
+
+// PrettyPrint outputs a human-readable description with indenting
+func (e *EntryAttribute) PrettyPrint(indent int) {
+	fmt.Printf("%s%s: %s\n", strings.Repeat(" ", indent), e.Name, e.Values)
 }
 
 // EntryAttribute holds a single attribute
@@ -54,8 +69,8 @@ type EntryAttribute struct {
 	ByteValues [][]byte
 }
 
-// newEntryAttribute returns a new EntryAttribute with the desired key-value pair
-func newEntryAttribute(name string, values []string) *EntryAttribute {
+// NewEntryAttribute returns a new EntryAttribute with the desired key-value pair
+func NewEntryAttribute(name string, values []string) *EntryAttribute {
 	var bytes [][]byte
 	for _, value := range values {
 		bytes = append(bytes, []byte(value))
@@ -64,6 +79,14 @@ func newEntryAttribute(name string, values []string) *EntryAttribute {
 		Name:       name,
 		Values:     values,
 		ByteValues: bytes,
+	}
+}
+
+// AddValue to an existing EntryAttribute
+func (a *EntryAttribute) AddValue(value ...string) {
+	for _, v := range value {
+		a.ByteValues = append(a.ByteValues, []byte(v))
+		a.Values = append(a.Values, v)
 	}
 }
 

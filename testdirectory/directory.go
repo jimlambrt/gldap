@@ -70,6 +70,7 @@ type Directory struct {
 	groups             []*gldap.Entry
 	tokenGroups        map[string][]*gldap.Entry // string == SID
 	allowAnonymousBind bool
+	bindControls       []gldap.Control
 
 	// userDN is the base distinguished name to use when searching for users
 	userDN string
@@ -123,6 +124,7 @@ func Start(t TestingT, opt ...Option) *Directory {
 	mux.Search(d.handleSearchUsers(t), gldap.WithBaseDN(d.userDN), gldap.WithLabel("Search - Users"))
 	mux.Search(d.handleSearchGroups(t), gldap.WithBaseDN(d.groupDN), gldap.WithLabel("Search - Groups"))
 	mux.Search(d.handleSearchGeneric(t), gldap.WithLabel("Search - Generic"))
+	mux.Modify(d.handleModify(t))
 
 	d.s.Router(mux)
 
@@ -202,6 +204,11 @@ func (d *Directory) handleBind(t TestingT) func(w *gldap.ResponseWriter, r *glda
 				values := u.GetAttributeValues("password")
 				if len(values) > 0 && string(m.Password) == values[0] {
 					resp.SetResultCode(gldap.ResultSuccess)
+					if d.bindControls != nil {
+						d.mu.Lock()
+						defer d.mu.Unlock()
+						resp.SetControls(d.bindControls...)
+					}
 					return
 				}
 			}
@@ -408,6 +415,76 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 	}
 }
 
+func (d *Directory) handleModify(t TestingT) func(w *gldap.ResponseWriter, r *gldap.Request) {
+	const op = "testdirectory.(Directory).handleSearchUsers"
+	if v, ok := interface{}(t).(HelperT); ok {
+		v.Helper()
+	}
+	return func(w *gldap.ResponseWriter, r *gldap.Request) {
+		d.logger.Debug(op)
+		res := r.NewModifyResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
+		defer w.Write(res)
+		m, err := r.GetModifyMessage()
+		if err != nil {
+			d.logger.Error("not a modify message: %s", "op", op, "err", err)
+			return
+		}
+		d.logger.Info("modify request", "dn", m.DN)
+
+		var entries []*gldap.Entry
+		_, entries = find(d.t, fmt.Sprintf("(%s)", m.DN), d.users)
+		if len(entries) == 0 {
+			_, entries = find(d.t, m.DN, d.groups)
+		}
+		if len(entries) == 0 {
+			return
+		}
+		if len(entries) > 1 {
+			res.SetResultCode(gldap.ResultInappropriateMatching)
+			res.SetDiagnosticMessage(fmt.Sprintf("more than one match: %d entries", len(entries)))
+			return
+		}
+		d.mu.Lock()
+		defer d.mu.Unlock()
+		e := entries[0]
+		if entries[0].Attributes == nil {
+			e.Attributes = []*gldap.EntryAttribute{}
+		}
+		res.SetMatchedDN(entries[0].DN)
+		for _, chg := range m.Changes {
+			// find specific attr
+			var foundAttr *gldap.EntryAttribute
+			var foundAt int
+			for i, a := range e.Attributes {
+				if a.Name == chg.Modification.Type {
+					foundAttr = a
+					foundAt = i
+				}
+			}
+			// then apply operation
+			switch chg.Operation {
+			case gldap.AddAttribute:
+				if foundAttr != nil {
+					foundAttr.AddValue(chg.Modification.Vals...)
+				} else {
+					e.Attributes = append(e.Attributes, gldap.NewEntryAttribute(chg.Modification.Type, chg.Modification.Vals))
+				}
+			case gldap.DeleteAttribute:
+				if foundAttr != nil {
+					// slice out the deleted attribute
+					copy(e.Attributes[foundAt:], e.Attributes[foundAt+1:])
+					e.Attributes = e.Attributes[:len(e.Attributes)-1]
+				}
+			case gldap.ReplaceAttribute:
+				if foundAttr != nil {
+					foundAttr = gldap.NewEntryAttribute(chg.Modification.Type, chg.Modification.Vals)
+				}
+			}
+		}
+		res.SetResultCode(gldap.ResultSuccess)
+	}
+}
+
 func (d *Directory) findMembers(filter string, opt ...Option) (bool, []*gldap.Entry) {
 	opts := getOpts(d.t, opt...)
 	var matches []*gldap.Entry
@@ -541,6 +618,21 @@ func (d *Directory) ClientKey() string {
 	pemKey := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 	require.NotNil(pemKey)
 	return string(pemKey)
+}
+
+// BindControls returns all the current bind controls for the Directory
+func (d *Directory) BindControls() []*gldap.Entry {
+	return d.users
+}
+
+// SetBindControls sets the bind controls.
+func (d *Directory) SetBindControls(controls ...gldap.Control) {
+	if v, ok := interface{}(d.t).(HelperT); ok {
+		v.Helper()
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.bindControls = controls
 }
 
 // Users returns all the current user entries in the Directory

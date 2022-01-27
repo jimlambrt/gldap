@@ -76,6 +76,31 @@ func testSimpleBindRequestPacket(t *testing.T, m SimpleBindMessage) *packet {
 	pkt.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, m.UserName, "User Name"))
 	pkt.AppendChild(ber.NewString(ber.ClassContext, ber.TypePrimitive, 0, string(m.Password), "Password"))
 	envelope.AppendChild(pkt)
+
+	if len(m.Controls) > 0 {
+		envelope.AppendChild(encodeControls(m.Controls))
+	}
+
+	return &packet{
+		Packet: envelope,
+	}
+}
+
+func testModifyRequestPacket(t *testing.T, m ModifyMessage) *packet {
+	t.Helper()
+	envelope := testRequestEnvelope(t, int(m.GetID()))
+	pkt := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationModifyRequest, nil, "Modify Request")
+	pkt.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, m.DN, "DN"))
+	changes := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Changes")
+	for _, change := range m.Changes {
+		changes.AppendChild(change.encode())
+	}
+	pkt.AppendChild(changes)
+
+	envelope.AppendChild(pkt)
+	if len(m.Controls) > 0 {
+		envelope.AppendChild(encodeControls(m.Controls))
+	}
 	return &packet{
 		Packet: envelope,
 	}

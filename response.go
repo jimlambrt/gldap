@@ -138,6 +138,12 @@ func (r *ExtendedResponse) packet() *packet {
 // BindResponse represents the response to a bind request
 type BindResponse struct {
 	*baseResponse
+	controls []Control
+}
+
+// SetControls for bind response
+func (r *BindResponse) SetControls(controls ...Control) {
+	r.controls = controls
 }
 
 func (r *BindResponse) packet() *packet {
@@ -152,6 +158,10 @@ func (r *BindResponse) packet() *packet {
 	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
 
 	replyPacket.AppendChild(resultPacket)
+	if len(r.controls) > 0 {
+		replyPacket.AppendChild(encodeControls(r.controls))
+	}
+
 	return &packet{Packet: replyPacket}
 }
 
@@ -204,7 +214,7 @@ type SearchResponseEntry struct {
 
 // AddAttribute will an attributes to the response entry
 func (r *SearchResponseEntry) AddAttribute(name string, values []string) {
-	r.entry.Attributes = append(r.entry.Attributes, newEntryAttribute(name, values))
+	r.entry.Attributes = append(r.entry.Attributes, NewEntryAttribute(name, values))
 }
 
 func (r *SearchResponseEntry) packet() *packet {
@@ -224,4 +234,9 @@ func (r *SearchResponseEntry) packet() *packet {
 
 	replyPacket.AppendChild(resultPacket)
 	return &packet{Packet: replyPacket}
+}
+
+// ModifyResponse is a response to a modify request.
+type ModifyResponse struct {
+	*GeneralResponse
 }

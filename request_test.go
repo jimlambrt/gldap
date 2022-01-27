@@ -9,11 +9,13 @@ import (
 )
 
 func Test_newRequest(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		requestID       int
 		conn            *conn
 		packet          *packet
+		wantMsg         Message
 		wantErr         bool
 		wantErrIs       error
 		wantErrContains string
@@ -52,8 +54,24 @@ func Test_newRequest(t *testing.T) {
 			requestID: 1,
 			conn:      &conn{},
 			packet: testSimpleBindRequestPacket(t,
-				SimpleBindMessage{baseMessage: baseMessage{id: 1}, UserName: "alice", Password: "fido"},
+				SimpleBindMessage{
+					baseMessage: baseMessage{id: 1},
+					UserName:    "alice",
+					Password:    "fido",
+					Controls: []Control{
+						NewControlString("generic-control", false, "generic-value"),
+					},
+				},
 			),
+			wantMsg: &SimpleBindMessage{
+				baseMessage: baseMessage{id: 1},
+				UserName:    "alice",
+				Password:    "fido",
+				AuthChoice:  "simple",
+				Controls: []Control{
+					NewControlString("generic-control", false, "generic-value"),
+				},
+			},
 		},
 		{
 			name:      "valid-search",
@@ -62,12 +80,50 @@ func Test_newRequest(t *testing.T) {
 			packet: testSearchRequestPacket(t,
 				SearchMessage{baseMessage: baseMessage{id: 1}, Filter: "(uid=alice)"},
 			),
+			wantMsg: &SearchMessage{baseMessage: baseMessage{id: 1}, Filter: "(uid=alice)", Attributes: []string{}},
 		},
 		{
 			name:      "valid-extended",
 			requestID: 1,
 			conn:      &conn{},
 			packet:    testStartTLSRequestPacket(t, 1),
+		},
+		{
+			name:      "valid-modify",
+			requestID: 1,
+			conn:      &conn{},
+			packet: testModifyRequestPacket(t,
+				ModifyMessage{
+					baseMessage: baseMessage{id: 1},
+					DN:          "uid=alice,ou=people,dc=example,dc=com",
+					Changes: []Change{
+						{
+							Operation: AddAttribute,
+							Modification: PartialAttribute{
+								Type: "mail", Vals: []string{"alice@example.com"},
+							},
+						},
+					},
+					Controls: []Control{
+						NewControlString("generic-control", false, "generic-value"),
+					},
+				},
+			),
+			wantMsg: &ModifyMessage{
+				baseMessage: baseMessage{id: 1},
+				DN:          "uid=alice,ou=people,dc=example,dc=com",
+				Changes: []Change{
+					{
+						Operation: AddAttribute,
+						Modification: PartialAttribute{
+							Type: "mail", Vals: []string{"\x04\x11alice@example.com"},
+						},
+					},
+				},
+				Controls: []Control{
+					NewControlString("generic-control", false, "generic-value"),
+				},
+			},
 		},
 	}
 	for _, tc := range tests {
@@ -87,6 +143,9 @@ func Test_newRequest(t *testing.T) {
 			}
 			require.NoError(err)
 			require.NotNil(req)
+			if tc.wantMsg != nil {
+				assert.Equal(tc.wantMsg, req.message)
+			}
 		})
 	}
 }

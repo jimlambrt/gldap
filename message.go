@@ -41,6 +41,7 @@ const (
 	bindRequestType     requestType = "bind"
 	searchRequestType   requestType = "search"
 	extendedRequestType requestType = "extended"
+	modifyRequestType   requestType = "modify"
 )
 
 // Message defines a common interface for all messages
@@ -89,6 +90,8 @@ type SimpleBindMessage struct {
 	UserName string
 	// Password for the bind request
 	Password Password
+	// Controls are optional controls for the bind request
+	Controls []Control
 }
 
 // ExtendedOperationMessage is an extended operation request message
@@ -116,7 +119,7 @@ func newMessage(p *packet) (Message, error) {
 
 	switch reqType {
 	case bindRequestType:
-		u, pass, err := p.simpleBindParameters()
+		u, pass, controls, err := p.simpleBindParameters()
 		if err != nil {
 			return nil, fmt.Errorf("%s: invalid bind message: %w", op, err)
 		}
@@ -127,6 +130,7 @@ func newMessage(p *packet) (Message, error) {
 			UserName:   u,
 			Password:   pass,
 			AuthChoice: SimpleAuthChoice,
+			Controls:   controls,
 		}, nil
 	case searchRequestType:
 		parameters, err := p.searchParmeters()
@@ -157,6 +161,19 @@ func newMessage(p *packet) (Message, error) {
 				id: msgID,
 			},
 			Name: opName,
+		}, nil
+	case modifyRequestType:
+		parameters, err := p.modifyParameters()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		return &ModifyMessage{
+			baseMessage: baseMessage{
+				id: msgID,
+			},
+			DN:       parameters.dn,
+			Changes:  parameters.changes,
+			Controls: parameters.controls,
 		}, nil
 	default:
 		return &ExtendedOperationMessage{

@@ -6,6 +6,7 @@ import (
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
+	"github.com/hashicorp/go-hclog"
 )
 
 type packet struct {
@@ -55,6 +56,24 @@ func (p *packet) requestMessageID() (int64, error) {
 	return id, nil
 }
 
+// returns nil, nil if there's no control packet
+func (p *packet) controlPacket() (*packet, error) {
+	const (
+		op = "gldap.(packet).requestPacket"
+
+		childControl = 2
+	)
+	if len(p.Children) <= 2 {
+		// no control packet
+		return nil, nil
+	}
+	controlPacket := &packet{Packet: p.Children[childControl]}
+	if err := controlPacket.assert(ber.ClassContext, ber.TypeConstructed); err != nil {
+		return nil, fmt.Errorf("%s: invalid control packet: %w", op, ErrInvalidParameter)
+	}
+	return controlPacket, nil
+}
+
 func (p *packet) requestPacket() (*packet, error) {
 	const (
 		op = "gldap.(packet).requestPacket"
@@ -72,12 +91,7 @@ func (p *packet) requestPacket() (*packet, error) {
 	requestPacket := &packet{Packet: p.Children[childApplicationRequest]}
 
 	switch requestPacket.Packet.Tag {
-	case ApplicationExtendedRequest:
-		// there is no version child.
-		// nada todo for now...
-	case ApplicationSearchRequest:
-		// nada to do.. no version child.. perhaps all this should be refactored?
-	default:
+	case ApplicationBindRequest:
 		// assert it's ldap v3
 		if err := requestPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagInteger), withAssertChild(childVersionNumber)); err != nil {
 			return nil, fmt.Errorf("%s: missing/invalid packet: %w", op, err)
@@ -89,6 +103,8 @@ func (p *packet) requestPacket() (*packet, error) {
 		if ldapVersion != 3 {
 			return nil, fmt.Errorf("%s: incorrect ldap version, expected 3 but got %v", op, requestPacket.Value.(int64))
 		}
+	default:
+		// nothing to do or see here, move along please... :)
 	}
 
 	return &packet{Packet: p.Children[childApplicationRequest]}, nil
@@ -108,9 +124,110 @@ func (p *packet) requestType() (requestType, error) {
 		return searchRequestType, nil
 	case ApplicationExtendedRequest:
 		return extendedRequestType, nil
+	case ApplicationModifyRequest:
+		return modifyRequestType, nil
 	default:
 		return unknownRequestType, fmt.Errorf("%s: unhandled request type %d: %w", op, requestPacket.Tag, ErrInternal)
 	}
+}
+
+type modifyParameters struct {
+	dn       string
+	changes  []Change
+	controls []Control
+}
+
+// return the DN, changes, and controls
+func (p *packet) modifyParameters() (*modifyParameters, error) {
+	const (
+		op = "gldap.(packet).modifyParameters"
+
+		childDN                 = 0
+		childChanges            = 1
+		childOperation          = 0
+		childModification       = 1
+		childModificationType   = 0
+		childModificationValues = 1
+		childControls           = 2
+	)
+	requestPacket, err := p.requestPacket()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if requestPacket.Packet.Tag != ApplicationModifyRequest {
+		return nil, fmt.Errorf("%s: not an modify request, expected tag %d and got %d: %w", op, ApplicationModifyRequest, requestPacket.Tag, ErrInvalidParameter)
+	}
+	var parameters modifyParameters
+
+	if err := requestPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagOctetString), withAssertChild(childDN)); err != nil {
+		return nil, fmt.Errorf("%s: modify dn packet: %w", op, ErrInvalidParameter)
+	}
+	parameters.dn = requestPacket.Children[childDN].Data.String()
+
+	// assert changes packet
+	if err := requestPacket.assert(ber.ClassUniversal, ber.TypeConstructed, withTag(ber.TagSequence), withAssertChild(childChanges)); err != nil {
+		return nil, fmt.Errorf("%s: modify changes packet: %w", op, ErrInvalidParameter)
+	}
+
+	changesPacket := requestPacket.Children[childChanges]
+	parameters.changes = make([]Change, 0, len(changesPacket.Children))
+	for _, c := range changesPacket.Children {
+		changePacket := packet{Packet: c}
+
+		// assert this is a "Change" packet
+		if err := changePacket.assert(ber.ClassUniversal, ber.TypeConstructed, withTag(ber.TagSequence)); err != nil {
+			return nil, fmt.Errorf("%s: modify changes child packet: %w", op, ErrInvalidParameter)
+		}
+		// assert the change operation child
+		if err := changePacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagEnumerated), withAssertChild(childOperation)); err != nil {
+			return nil, fmt.Errorf("%s: modify changes child operation packet: %w", op, ErrInvalidParameter)
+		}
+		var ok bool
+		var chg Change
+		if chg.Operation, ok = changePacket.Children[childOperation].Value.(int64); !ok {
+			return nil, fmt.Errorf("%s: change operation is not an int64: %t", op, changePacket.Children[childOperation].Value)
+		}
+
+		// assert the change modification child
+		if err := changePacket.assert(ber.ClassUniversal, ber.TypeConstructed, withTag(ber.TagSequence), withAssertChild(childModification)); err != nil {
+			return nil, fmt.Errorf("%s: change modification child packet: %w", op, ErrInvalidParameter)
+		}
+
+		// get the modification type
+		modificationPacket := packet{Packet: changePacket.Children[childModification]}
+		if err := modificationPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagOctetString), withAssertChild(childModificationType)); err != nil {
+			return nil, fmt.Errorf("%s: modification type packet: %w", op, ErrInvalidParameter)
+		}
+		chg.Modification.Type = modificationPacket.Children[childModificationType].Data.String()
+
+		// get the modification values
+		if len(modificationPacket.Children) < childModificationValues+1 {
+			return nil, fmt.Errorf("%s: missing modification values packet: %w", op, ErrInvalidParameter)
+		}
+		chg.Modification.Vals = make([]string, 0, len(modificationPacket.Children)-1)
+		for _, value := range modificationPacket.Children[1:] {
+			chg.Modification.Vals = append(chg.Modification.Vals, value.Data.String())
+		}
+
+		parameters.changes = append(parameters.changes, chg)
+	}
+
+	controlPacket, err := p.controlPacket()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if controlPacket != nil {
+		parameters.controls = make([]Control, 0, len(controlPacket.Children))
+		for _, c := range controlPacket.Children {
+			ctrl, err := decodeControl(c)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", op, err)
+			}
+			parameters.controls = append(parameters.controls, ctrl)
+		}
+	}
+
+	return &parameters, nil
 }
 
 func (p *packet) extendedOperationName() (ExtendedOperationName, error) {
@@ -136,7 +253,7 @@ func (p *packet) extendedOperationName() (ExtendedOperationName, error) {
 // Password is a simple bind request password
 type Password string
 
-func (p *packet) simpleBindParameters() (string, Password, error) {
+func (p *packet) simpleBindParameters() (string, Password, []Control, error) {
 	const (
 		op = "gldap.(Packet).simpleBindParameters"
 
@@ -145,23 +262,39 @@ func (p *packet) simpleBindParameters() (string, Password, error) {
 	)
 	requestPacket, err := p.requestPacket()
 	if err != nil {
-		return "", "", fmt.Errorf("%s: %w", op, err)
+		return "", "", nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if err := requestPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagOctetString), withAssertChild(childBindUserName)); err != nil {
-		return "", "", fmt.Errorf("%s: missing/invalid username packet: %w", op, ErrInvalidParameter)
+		return "", "", nil, fmt.Errorf("%s: missing/invalid username packet: %w", op, ErrInvalidParameter)
 	}
 	userName := requestPacket.Children[childBindUserName].Data.String()
 
 	// check if there's even an password packet in the request
 	if len(requestPacket.Children) > 3 {
-		return userName, "", nil
+		return userName, "", nil, nil
 	}
 	if err := requestPacket.assert(ber.ClassContext, ber.TypePrimitive, withTag(0), withAssertChild(childBindPassword)); err != nil {
-		return "", "", fmt.Errorf("%s: missing/invalid password packet: %w", op, ErrInvalidParameter)
+		return "", "", nil, fmt.Errorf("%s: missing/invalid password packet: %w", op, ErrInvalidParameter)
 	}
 	password := requestPacket.Children[childBindPassword].Data.String()
 
-	return userName, Password(password), nil
+	var controls []Control
+	controlPacket, err := p.controlPacket()
+	if err != nil {
+		return "", "", nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if controlPacket != nil {
+		controls = make([]Control, 0, len(controlPacket.Children))
+		for _, c := range controlPacket.Children {
+			ctrl, err := decodeControl(c)
+			if err != nil {
+				return "", "", nil, fmt.Errorf("%s: %w", op, err)
+			}
+			controls = append(controls, ctrl)
+		}
+	}
+
+	return userName, Password(password), controls, nil
 }
 
 type searchParameters struct {
@@ -308,6 +441,14 @@ func (p *packet) assert(cl ber.Class, ty ber.Type, opt ...Option) error {
 		return fmt.Errorf("%s: incorrect tag, expected %v but got %v", op, *opts.withTag, chkPacket.Tag)
 	}
 	return nil
+}
+
+func (p *packet) debug() {
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  "debug-logger",
+		Level: hclog.Debug,
+	})
+	p.Log(testLogger.StandardWriter(&hclog.StandardLoggerOptions{}), 0, false)
 }
 
 // Log will pretty print log a packet
