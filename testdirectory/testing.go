@@ -196,8 +196,6 @@ func GetTLSConfig(t TestingT, opt ...Option) (s *tls.Config, c *tls.Config) {
 		clientCert := genCert(t, ca, caPriv, cert)
 		clientTLSConf.Certificates = []tls.Certificate{clientCert}
 	}
-	// TODO: I think, this has been deprecated, so remove it it works without it
-	// serverTLSConf.BuildNameToCertificate()
 
 	return serverTLSConf, clientTLSConf
 }

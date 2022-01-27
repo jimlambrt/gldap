@@ -11,6 +11,7 @@ import (
 )
 
 func TestServer_Stop(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		server          *Server

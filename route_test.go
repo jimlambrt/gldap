@@ -7,6 +7,7 @@ import (
 )
 
 func TestSearchRoute_match(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		route     *searchRoute
@@ -153,6 +154,7 @@ func TestSearchRoute_match(t *testing.T) {
 }
 
 func TestSimpleBindRoute_match(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		route     *simpleBindRoute
@@ -237,6 +239,7 @@ func TestSimpleBindRoute_match(t *testing.T) {
 }
 
 func TestExtendedRoute_match(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		route     *extendedRoute

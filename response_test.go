@@ -13,6 +13,7 @@ import (
 )
 
 func Test_newResponseWriter(t *testing.T) {
+	t.Parallel()
 	var buf bytes.Buffer
 	tests := []struct {
 		name            string
