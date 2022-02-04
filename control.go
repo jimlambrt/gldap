@@ -84,6 +84,7 @@ func encodeControls(controls []Control) *ber.Packet {
 }
 
 func decodeControl(packet *ber.Packet) (Control, error) {
+	const op = "gldap.decodeControl"
 	var (
 		ControlType = ""
 		Criticality = false
@@ -93,7 +94,7 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 	switch len(packet.Children) {
 	case 0:
 		// at least one child is required for a control type
-		return nil, fmt.Errorf("at least one child is required for control type")
+		return nil, fmt.Errorf("%s: at least one child is required for control type", op)
 	case 1:
 		// just type, no critically or value
 		packet.Children[0].Description = "Control Type (" + ControlTypeMap[ControlType] + ")"
@@ -122,7 +123,7 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 		value = packet.Children[2]
 	default:
 		// more than 3 children is invalid
-		return nil, fmt.Errorf("more than 3 children is invalid for controls")
+		return nil, fmt.Errorf("%s: more than 3 children is invalid for controls", op)
 	}
 	switch ControlType {
 	case ControlTypeManageDsaIT:
@@ -136,7 +137,7 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 		if value.Value != nil {
 			valueChildren, err := ber.DecodePacketErr(value.Data.Bytes())
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode data bytes: %s", err)
+				return nil, fmt.Errorf("%s, failed to decode data bytes: %w", op, err)
 			}
 			value.Data.Truncate(0)
 			value.Value = nil
@@ -152,14 +153,21 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 		return c, nil
 	case ControlTypeBeheraPasswordPolicy:
 		if value == nil {
-			return NewControlBeheraPasswordPolicy(), nil
+			c, err := NewControlBeheraPasswordPolicy()
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", op, err)
+			}
+			return c, nil
 		}
 		value.Description += " (Password Policy - Behera)"
-		c := NewControlBeheraPasswordPolicy()
+		c, err := NewControlBeheraPasswordPolicy()
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to create behera password control", op)
+		}
 		if value.Value != nil {
 			valueChildren, err := ber.DecodePacketErr(value.Data.Bytes())
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode data bytes: %s", err)
+				return nil, fmt.Errorf("%s: failed to decode data bytes: %w", op, err)
 			}
 			value.Data.Truncate(0)
 			value.Value = nil
@@ -170,31 +178,31 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 
 		for _, child := range sequence.Children {
 			if child.Tag == 0 {
-				//Warning
+				// Warning
 				warningPacket := child.Children[0]
 				val, err := ber.ParseInt64(warningPacket.Data.Bytes())
 				if err != nil {
-					return nil, fmt.Errorf("failed to decode data bytes: %s", err)
+					return nil, fmt.Errorf("%s: failed to decode data bytes: %w", op, err)
 				}
 				if warningPacket.Tag == 0 {
-					//timeBeforeExpiration
-					c.Expire = val
-					warningPacket.Value = c.Expire
+					// timeBeforeExpiration
+					c.expire = val
+					warningPacket.Value = c.expire
 				} else if warningPacket.Tag == 1 {
-					//graceAuthNsRemaining
-					c.Grace = val
-					warningPacket.Value = c.Grace
+					// graceAuthNsRemaining
+					c.grace = val
+					warningPacket.Value = c.grace
 				}
 			} else if child.Tag == 1 {
 				// Error
 				bs := child.Data.Bytes()
 				if len(bs) != 1 || bs[0] > 8 {
-					return nil, fmt.Errorf("failed to decode data bytes: %s", "invalid PasswordPolicyResponse enum value")
+					return nil, fmt.Errorf("%s: failed to decode data bytes: %s", "invalid PasswordPolicyResponse enum value", op)
 				}
 				val := int8(bs[0])
-				c.Error = val
-				child.Value = c.Error
-				c.ErrorString = BeheraPasswordPolicyErrorMap[c.Error]
+				c.error = val
+				child.Value = c.error
+				c.errorString = BeheraPasswordPolicyErrorMap[c.error]
 			}
 		}
 		return c, nil
@@ -210,7 +218,7 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 
 		expire, err := strconv.ParseInt(expireStr, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse value as int: %s", err)
+			return nil, fmt.Errorf("%s: failed to parse value as int: %w", op, err)
 		}
 		c.Expire = expire
 		value.Value = c.Expire
@@ -279,7 +287,7 @@ type ControlManageDsaIT struct {
 
 // Encode returns the ber packet representation
 func (c *ControlManageDsaIT) Encode() *ber.Packet {
-	//FIXME
+	// FIXME
 	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Control")
 	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeManageDsaIT, "Control Type ("+ControlTypeMap[ControlTypeManageDsaIT]+")"))
 	if c.Criticality {
@@ -396,14 +404,33 @@ func NewControlMicrosoftShowDeleted() *ControlMicrosoftShowDeleted {
 
 // ControlBeheraPasswordPolicy implements the control described in https://tools.ietf.org/html/draft-behera-ldap-password-policy-10
 type ControlBeheraPasswordPolicy struct {
-	// Expire contains the number of seconds before a password will expire
-	Expire int64
-	// Grace indicates the remaining number of times a user will be allowed to authenticate with an expired password
-	Grace int64
-	// Error indicates the error code
-	Error int8
-	// ErrorString is a human readable error
-	ErrorString string
+	// expire contains the number of seconds before a password will expire
+	expire int64
+	// grace indicates the remaining number of times a user will be allowed to authenticate with an expired password
+	grace int64
+	// error indicates the error code
+	error int8
+	// errorString is a human readable error
+	errorString string
+}
+
+// Grace returns the remaining number of times a user will be allowed to
+// authenticate with an expired password. A value of -1 indicates it hasn't been
+// set.
+func (c *ControlBeheraPasswordPolicy) Grace() int {
+	return int(c.grace)
+}
+
+// Expire contains the number of seconds before a password will expire. A value
+// of -1 indicates it hasn't been set.
+func (c *ControlBeheraPasswordPolicy) Expire() int {
+	return int(c.expire)
+}
+
+// ErrorCode is the error code and a human readable string.  A value of -1 and
+// empty string indicates it hasn't been set.
+func (c *ControlBeheraPasswordPolicy) ErrorCode() (int, string) {
+	return int(c.error), c.errorString
 }
 
 // GetControlType returns the OID
@@ -416,6 +443,46 @@ func (c *ControlBeheraPasswordPolicy) Encode() *ber.Packet {
 	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Control")
 	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeBeheraPasswordPolicy, "Control Type ("+ControlTypeMap[ControlTypeBeheraPasswordPolicy]+")"))
 
+	switch {
+	case c.grace >= 0:
+		// control value packet for GraceAuthNsRemaining
+		valuePacket := ber.Encode(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, nil, "")
+		sequencePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "")
+
+		// it's a warning. so it's the end of a context (ber.TagEOC)
+		contextPacket := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0x00, nil, "")
+		// "0x01" tag indicates an grace logins
+		contextPacket.AppendChild(ber.NewInteger(ber.ClassContext, ber.TypePrimitive, 0x01, c.grace, ""))
+		sequencePacket.AppendChild(contextPacket)
+
+		valuePacket.AppendChild(sequencePacket)
+		packet.AppendChild(valuePacket)
+		return packet // I believe you can only have either Grace or Expire for a response.... not both.
+	case c.expire >= 0:
+		// control value packet for timeBeforeExpiration
+		valuePacket := ber.Encode(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, nil, "")
+		sequencePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "")
+
+		// it's a warning. so it's the end of a context (ber.TagEOC)
+		contextPacket := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0x00, nil, "")
+		// "0x00" tag indicates an expires in
+		contextPacket.AppendChild(ber.NewInteger(ber.ClassContext, ber.TypePrimitive, 0x00, c.expire, ""))
+		sequencePacket.AppendChild(contextPacket)
+
+		valuePacket.AppendChild(sequencePacket)
+		packet.AppendChild(valuePacket)
+		return packet // I believe you can only have either Grace or Expire for a response.... not both.
+	case c.error >= 0:
+		valuePacket := ber.Encode(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, nil, "")
+		sequencePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "")
+
+		contextPacket := ber.NewInteger(ber.ClassContext, ber.TypePrimitive, 0x01, c.error, "")
+		sequencePacket.AppendChild(contextPacket)
+
+		valuePacket.AppendChild(sequencePacket)
+		packet.AppendChild(valuePacket)
+
+	}
 	return packet
 }
 
@@ -426,19 +493,36 @@ func (c *ControlBeheraPasswordPolicy) String() string {
 		ControlTypeMap[ControlTypeBeheraPasswordPolicy],
 		ControlTypeBeheraPasswordPolicy,
 		false,
-		c.Expire,
-		c.Grace,
-		c.Error,
-		c.ErrorString)
+		c.expire,
+		c.grace,
+		c.error,
+		c.errorString)
 }
 
-// NewControlBeheraPasswordPolicy returns a ControlBeheraPasswordPolicy
-func NewControlBeheraPasswordPolicy() *ControlBeheraPasswordPolicy {
-	return &ControlBeheraPasswordPolicy{
-		Expire: -1,
-		Grace:  -1,
-		Error:  -1,
+// NewControlBeheraPasswordPolicy returns a ControlBeheraPasswordPolicy.
+// Options supported: WithExpire, WithGrace, WithErrorCode
+func NewControlBeheraPasswordPolicy(opt ...Option) (*ControlBeheraPasswordPolicy, error) {
+	const op = "NewControlBeheraPolicy"
+	opts := getControlOpts(opt...)
+	switch {
+	case opts.withGrace != -1 && opts.withExpire != -1:
+		return nil, fmt.Errorf("%s: behera policies cannot have both grace and expire set: %w", op, ErrInvalidParameter)
+	case opts.withGrace != -1 && opts.withErrorCode != -1:
+		return nil, fmt.Errorf("%s: behera policies cannot have both grace and error codes set: %w", op, ErrInvalidParameter)
+	case opts.withExpire != -1 && opts.withErrorCode != -1:
+		return nil, fmt.Errorf("%s: behera polices cannot have both expire and error codes set: %w", op, ErrInvalidParameter)
+	case opts.withErrorCode > 8:
+		return nil, fmt.Errorf("%s: %d is not a valid behera policy error code (must be between 0-8: %w", op, opts.withErrorCode, ErrInvalidParameter)
 	}
+	c := &ControlBeheraPasswordPolicy{
+		expire: int64(opts.withExpire),
+		grace:  int64(opts.withGrace),
+		error:  int8(opts.withErrorCode),
+	}
+	if opts.withErrorCode != -1 {
+		c.errorString = BeheraPasswordPolicyErrorMap[int8(opts.withErrorCode)]
+	}
+	return c, nil
 }
 
 // ControlVChuPasswordMustChange implements the control described in https://tools.ietf.org/html/draft-vchu-ldap-pwd-policy-00
@@ -620,18 +704,18 @@ func addControlDescriptions(packet *ber.Packet) error {
 			sequence := value.Children[0]
 			for _, child := range sequence.Children {
 				if child.Tag == 0 {
-					//Warning
+					// Warning
 					warningPacket := child.Children[0]
 					val, err := ber.ParseInt64(warningPacket.Data.Bytes())
 					if err != nil {
 						return fmt.Errorf("failed to decode data bytes: %s", err)
 					}
 					if warningPacket.Tag == 0 {
-						//timeBeforeExpiration
+						// timeBeforeExpiration
 						value.Description += " (TimeBeforeExpiration)"
 						warningPacket.Value = val
 					} else if warningPacket.Tag == 1 {
-						//graceAuthNsRemaining
+						// graceAuthNsRemaining
 						value.Description += " (GraceAuthNsRemaining)"
 						warningPacket.Value = val
 					}

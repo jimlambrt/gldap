@@ -117,17 +117,22 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 		Level: hclog.Error,
 	})
 	td := testdirectory.Start(t,
+		testdirectory.WithDisablePanicRecovery(t, true),
 		testdirectory.WithLogger(t, testLogger),
 		testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}),
 	)
 	users := testdirectory.NewUsers(t, []string{"alice", "bob"})
 	td.SetUsers(users...)
+	p, err := gldap.NewControlBeheraPasswordPolicy(gldap.WithGraceAuthNsRemaining(60))
+	require.NoError(t, err)
+	td.SetBindControls(p)
 
 	tests := []struct {
-		name     string
-		userName string
-		userPass string
-		wantErr  bool
+		name         string
+		userName     string
+		userPass     string
+		wantControls []gldap.Control
+		wantErr      bool
 	}{
 		{
 			name:     "simple-success",
@@ -152,13 +157,16 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 			client := td.Conn()
 			defer func() { client.Close() }()
 			var err error
+			// var result *ldap.SimpleBindResult
 			switch tc.userPass {
 			case "":
 				err = client.UnauthenticatedBind(tc.userName)
 			default:
-				err = client.Bind(tc.userName, tc.userPass)
+				controls := []ldap.Control{}
+				controls = append(controls, ldap.NewControlBeheraPasswordPolicy())
+				bindRequest := ldap.NewSimpleBindRequest(tc.userName, tc.userPass, controls)
+				_, err = client.SimpleBind(bindRequest)
 			}
-
 			if tc.wantErr {
 				assert.Error(err)
 				return
