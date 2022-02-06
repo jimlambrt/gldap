@@ -568,13 +568,18 @@ func (c *ControlVChuPasswordWarning) GetControlType() string {
 
 // Encode returns the ber packet representation
 func (c *ControlVChuPasswordWarning) Encode() *ber.Packet {
-	return nil
+	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Control")
+	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeVChuPasswordWarning, "Control Type ("+ControlTypeMap[ControlTypeVChuPasswordWarning]+")"))
+	// I believe, it's a string in the spec
+	expStr := strconv.FormatInt(c.Expire, 10)
+	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, expStr, "Control Value"))
+	return packet
 }
 
 // String returns a human-readable description
 func (c *ControlVChuPasswordWarning) String() string {
 	return fmt.Sprintf(
-		"Control Type: %s (%q)  Criticality: %t  Expire: %b",
+		"Control Type: %s (%q)  Criticality: %t  Expire: %d",
 		ControlTypeMap[ControlTypeVChuPasswordWarning],
 		ControlTypeVChuPasswordWarning,
 		false,

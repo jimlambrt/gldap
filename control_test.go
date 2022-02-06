@@ -313,6 +313,12 @@ func TestControl_Encode(t *testing.T) {
 			opts:    []Option{withTestType(ControlTypeVChuPasswordMustChange), withTestToString(`Control Type:  ("2.16.840.1.113730.3.4.4")  Criticality: false  MustChange: true`)},
 			want:    &ControlVChuPasswordMustChange{MustChange: true},
 		},
+		{
+			name:    "ControlTypeVChuPasswordWarning",
+			control: &ControlVChuPasswordWarning{Expire: 200},
+			opts:    []Option{withTestType(ControlTypeVChuPasswordWarning), withTestToString(`Control Type:  ("2.16.840.1.113730.3.4.5")  Criticality: false  Expire: 200`)},
+			want:    &ControlVChuPasswordWarning{Expire: 200},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
