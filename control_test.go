@@ -248,6 +248,7 @@ func TestControl_Encode(t *testing.T) {
 	tests := []struct {
 		name    string
 		control Control
+		opts    []Option
 		want    Control
 	}{
 		{
@@ -306,18 +307,21 @@ func TestControl_Encode(t *testing.T) {
 				errorString: BeheraPasswordPolicyErrorMap[BeheraAccountLocked],
 			},
 		},
+		{
+			name:    "ControlVChuPasswordMustChange",
+			control: &ControlVChuPasswordMustChange{MustChange: true},
+			opts:    []Option{withTestType(ControlTypeVChuPasswordMustChange), withTestToString(`Control Type:  ("2.16.840.1.113730.3.4.4")  Criticality: false  MustChange: true`)},
+			want:    &ControlVChuPasswordMustChange{MustChange: true},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			assert, require := assert.New(t), require.New(t)
-			raw := tc.control.Encode()
 			if strings.ToLower(os.Getenv("DEBUG")) == "true" {
+				raw := tc.control.Encode()
 				p := packet{Packet: raw}
 				p.debug()
 			}
-			got, err := decodeControl(raw)
-			require.NoError(err)
-			assert.Equal(tc.want, got)
+			runControlTest(t, tc.control, tc.opts...)
 		})
 	}
 }

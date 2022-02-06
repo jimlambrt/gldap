@@ -538,7 +538,11 @@ func (c *ControlVChuPasswordMustChange) GetControlType() string {
 
 // Encode returns the ber packet representation
 func (c *ControlVChuPasswordMustChange) Encode() *ber.Packet {
-	return nil
+	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Control")
+	// I believe, just the control type child is require... not criticality or
+	// value is require...
+	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeVChuPasswordMustChange, "Control Type ("+ControlTypeMap[ControlTypeVChuPasswordMustChange]+")"))
+	return packet
 }
 
 // String returns a human-readable description
