@@ -404,6 +404,21 @@ func (p *packet) searchParmeters() (*searchParameters, error) {
 		searchFor.attributes = append(searchFor.attributes, attribute.Data.String())
 	}
 
+	controlPacket, err := p.controlPacket()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if controlPacket != nil {
+		searchFor.controls = make([]Control, 0, len(controlPacket.Children))
+		for _, c := range controlPacket.Children {
+			ctrl, err := decodeControl(c)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", op, err)
+			}
+			searchFor.controls = append(searchFor.controls, ctrl)
+		}
+	}
+
 	return &searchFor, nil
 }
 

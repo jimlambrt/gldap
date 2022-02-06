@@ -125,7 +125,7 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 	td.SetUsers(users...)
 	p, err := gldap.NewControlBeheraPasswordPolicy(gldap.WithGraceAuthNsRemaining(60))
 	require.NoError(t, err)
-	td.SetBindControls(p)
+	td.SetControls(p)
 
 	tests := []struct {
 		name         string
@@ -208,6 +208,9 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 			testdirectory.WithDefaults(t, &testdirectory.Defaults{UPNDomain: "example.com"}),
 			testdirectory.WithMembersOf(t, "admin"))...,
 	)
+	paging := gldap.NewControlPaging(60)
+
+	td.SetControls(paging)
 	td.SetUsers(users...)
 	td.SetGroups(groups...)
 	td.SetTokenGroups(tokenGroups)
@@ -272,9 +275,10 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 			assert, require := assert.New(t), require.New(t)
 			client := td.Conn()
 			defer func() { client.Close() }()
-			_, err := client.Search(&ldap.SearchRequest{
-				BaseDN: tc.baseDN,
-				Filter: tc.filter,
+			results, err := client.Search(&ldap.SearchRequest{
+				BaseDN:   tc.baseDN,
+				Filter:   tc.filter,
+				Controls: []ldap.Control{ldap.NewControlPaging(60)},
 			})
 			if tc.wantErr {
 				require.Error(err)
@@ -284,6 +288,20 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 				return
 			}
 			assert.NoError(err)
+			if gldap.TestWithDebug(t) {
+				fmt.Printf("test name: %s\n", tc.name)
+				fmt.Printf("  entries:\n")
+				for _, r := range results.Entries {
+					fmt.Printf("      dn: %s\n", r.DN)
+					for _, a := range r.Attributes {
+						fmt.Printf("      %s: %s\n", a.Name, a.Values)
+					}
+				}
+				for _, c := range results.Controls {
+					fmt.Println("  controls:")
+					fmt.Printf("    %s\n", c)
+				}
+			}
 		})
 	}
 }
