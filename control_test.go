@@ -3,10 +3,8 @@ package gldap
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"reflect"
 	"runtime"
-	"strings"
 	"testing"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -226,7 +224,7 @@ func TestDecodeControl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if strings.ToLower(os.Getenv("DEBUG")) == "true" {
+			if TestWithDebug(t) {
 				fmt.Println("****************************")
 				fmt.Println(tt.name)
 				p := packet{Packet: tt.args.packet}
@@ -322,7 +320,7 @@ func TestControl_Encode(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if strings.ToLower(os.Getenv("DEBUG")) == "true" {
+			if TestWithDebug(t) {
 				raw := tc.control.Encode()
 				p := packet{Packet: raw}
 				p.debug()

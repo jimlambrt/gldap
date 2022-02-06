@@ -70,7 +70,7 @@ type Directory struct {
 	groups             []*gldap.Entry
 	tokenGroups        map[string][]*gldap.Entry // string == SID
 	allowAnonymousBind bool
-	bindControls       []gldap.Control
+	controls           []gldap.Control
 
 	// userDN is the base distinguished name to use when searching for users
 	userDN string
@@ -204,10 +204,10 @@ func (d *Directory) handleBind(t TestingT) func(w *gldap.ResponseWriter, r *glda
 				values := u.GetAttributeValues("password")
 				if len(values) > 0 && string(m.Password) == values[0] {
 					resp.SetResultCode(gldap.ResultSuccess)
-					if d.bindControls != nil {
+					if d.controls != nil {
 						d.mu.Lock()
 						defer d.mu.Unlock()
-						resp.SetControls(d.bindControls...)
+						resp.SetControls(d.controls...)
 					}
 					return
 				}
@@ -329,6 +329,11 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 		}
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
+			if d.controls != nil {
+				d.mu.Lock()
+				defer d.mu.Unlock()
+				res.SetControls(d.controls...)
+			}
 			res.SetResultCode(gldap.ResultSuccess)
 		}
 	}
@@ -374,6 +379,11 @@ func (d *Directory) handleSearchGroups(t TestingT) func(w *gldap.ResponseWriter,
 
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
+			if d.controls != nil {
+				d.mu.Lock()
+				defer d.mu.Unlock()
+				res.SetControls(d.controls...)
+			}
 			res.SetResultCode(gldap.ResultSuccess)
 		}
 	}
@@ -410,6 +420,12 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 		}
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
+			if d.controls != nil {
+				d.mu.Lock()
+				defer d.mu.Unlock()
+				res.SetControls(d.controls...)
+				fmt.Println(d.controls)
+			}
 			res.SetResultCode(gldap.ResultSuccess)
 		}
 	}
@@ -620,19 +636,19 @@ func (d *Directory) ClientKey() string {
 	return string(pemKey)
 }
 
-// BindControls returns all the current bind controls for the Directory
-func (d *Directory) BindControls() []*gldap.Entry {
+// Controls returns all the current bind controls for the Directory
+func (d *Directory) Controls() []*gldap.Entry {
 	return d.users
 }
 
-// SetBindControls sets the bind controls.
-func (d *Directory) SetBindControls(controls ...gldap.Control) {
+// SetControls sets the bind controls.
+func (d *Directory) SetControls(controls ...gldap.Control) {
 	if v, ok := interface{}(d.t).(HelperT); ok {
 		v.Helper()
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.bindControls = controls
+	d.controls = controls
 }
 
 // Users returns all the current user entries in the Directory

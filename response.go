@@ -190,6 +190,12 @@ func (r *GeneralResponse) packet() *packet {
 // SearchResponseDone represents that handling a search requests is done.
 type SearchResponseDone struct {
 	*baseResponse
+	controls []Control
+}
+
+// SetControls for the search response
+func (r *SearchResponseDone) SetControls(controls ...Control) {
+	r.controls = controls
 }
 
 func (r *SearchResponseDone) packet() *packet {
@@ -203,6 +209,9 @@ func (r *SearchResponseDone) packet() *packet {
 	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
 
 	replyPacket.AppendChild(resultPacket)
+	if len(r.controls) > 0 {
+		replyPacket.AppendChild(encodeControls(r.controls))
+	}
 	return &packet{Packet: replyPacket}
 }
 

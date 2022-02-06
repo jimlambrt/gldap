@@ -2,6 +2,8 @@ package gldap
 
 import (
 	"net"
+	"os"
+	"strings"
 	"testing"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -110,4 +112,12 @@ func testRequestEnvelope(t *testing.T, messageID int) *ber.Packet {
 	p := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
 	p.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, int64(messageID), "MessageID"))
 	return p
+}
+
+func TestWithDebug(t *testing.T) bool {
+	t.Helper()
+	if strings.ToLower(os.Getenv("DEBUG")) == "true" {
+		return true
+	}
+	return false
 }
