@@ -253,7 +253,7 @@ func (p *packet) extendedOperationName() (ExtendedOperationName, error) {
 // Password is a simple bind request password
 type Password string
 
-func (p *packet) simpleBindParameters() (string, Password, error) {
+func (p *packet) simpleBindParameters() (string, Password, []Control, error) {
 	const (
 		op = "gldap.(Packet).simpleBindParameters"
 
@@ -262,23 +262,39 @@ func (p *packet) simpleBindParameters() (string, Password, error) {
 	)
 	requestPacket, err := p.requestPacket()
 	if err != nil {
-		return "", "", fmt.Errorf("%s: %w", op, err)
+		return "", "", nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if err := requestPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagOctetString), withAssertChild(childBindUserName)); err != nil {
-		return "", "", fmt.Errorf("%s: missing/invalid username packet: %w", op, ErrInvalidParameter)
+		return "", "", nil, fmt.Errorf("%s: missing/invalid username packet: %w", op, ErrInvalidParameter)
 	}
 	userName := requestPacket.Children[childBindUserName].Data.String()
 
 	// check if there's even an password packet in the request
 	if len(requestPacket.Children) > 3 {
-		return userName, "", nil
+		return userName, "", nil, nil
 	}
 	if err := requestPacket.assert(ber.ClassContext, ber.TypePrimitive, withTag(0), withAssertChild(childBindPassword)); err != nil {
-		return "", "", fmt.Errorf("%s: missing/invalid password packet: %w", op, ErrInvalidParameter)
+		return "", "", nil, fmt.Errorf("%s: missing/invalid password packet: %w", op, ErrInvalidParameter)
 	}
 	password := requestPacket.Children[childBindPassword].Data.String()
 
-	return userName, Password(password), nil
+	var controls []Control
+	controlPacket, err := p.controlPacket()
+	if err != nil {
+		return "", "", nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if controlPacket != nil {
+		controls = make([]Control, 0, len(controlPacket.Children))
+		for _, c := range controlPacket.Children {
+			ctrl, err := decodeControl(c)
+			if err != nil {
+				return "", "", nil, fmt.Errorf("%s: %w", op, err)
+			}
+			controls = append(controls, ctrl)
+		}
+	}
+
+	return userName, Password(password), controls, nil
 }
 
 type searchParameters struct {

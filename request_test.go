@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
-	"github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -55,9 +54,24 @@ func Test_newRequest(t *testing.T) {
 			requestID: 1,
 			conn:      &conn{},
 			packet: testSimpleBindRequestPacket(t,
-				SimpleBindMessage{baseMessage: baseMessage{id: 1}, UserName: "alice", Password: "fido"},
+				SimpleBindMessage{
+					baseMessage: baseMessage{id: 1},
+					UserName:    "alice",
+					Password:    "fido",
+					Controls: []Control{
+						NewControlString("generic-control", false, "generic-value"),
+					},
+				},
 			),
-			wantMsg: &SimpleBindMessage{baseMessage: baseMessage{id: 1}, UserName: "alice", Password: "fido", AuthChoice: "simple"},
+			wantMsg: &SimpleBindMessage{
+				baseMessage: baseMessage{id: 1},
+				UserName:    "alice",
+				Password:    "fido",
+				AuthChoice:  "simple",
+				Controls: []Control{
+					NewControlString("generic-control", false, "generic-value"),
+				},
+			},
 		},
 		{
 			name:      "valid-search",
@@ -91,7 +105,7 @@ func Test_newRequest(t *testing.T) {
 						},
 					},
 					Controls: []Control{
-						ldap.NewControlString("generic-control", false, "generic-value"),
+						NewControlString("generic-control", false, "generic-value"),
 					},
 				},
 			),
@@ -107,7 +121,7 @@ func Test_newRequest(t *testing.T) {
 					},
 				},
 				Controls: []Control{
-					ldap.NewControlString("generic-control", false, "generic-value"),
+					NewControlString("generic-control", false, "generic-value"),
 				},
 			},
 		},

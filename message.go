@@ -90,6 +90,8 @@ type SimpleBindMessage struct {
 	UserName string
 	// Password for the bind request
 	Password Password
+	// Controls are optional controls for the bind request
+	Controls []Control
 }
 
 // ExtendedOperationMessage is an extended operation request message
@@ -117,7 +119,7 @@ func newMessage(p *packet) (Message, error) {
 
 	switch reqType {
 	case bindRequestType:
-		u, pass, err := p.simpleBindParameters()
+		u, pass, controls, err := p.simpleBindParameters()
 		if err != nil {
 			return nil, fmt.Errorf("%s: invalid bind message: %w", op, err)
 		}
@@ -128,6 +130,7 @@ func newMessage(p *packet) (Message, error) {
 			UserName:   u,
 			Password:   pass,
 			AuthChoice: SimpleAuthChoice,
+			Controls:   controls,
 		}, nil
 	case searchRequestType:
 		parameters, err := p.searchParmeters()

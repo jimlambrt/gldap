@@ -138,6 +138,12 @@ func (r *ExtendedResponse) packet() *packet {
 // BindResponse represents the response to a bind request
 type BindResponse struct {
 	*baseResponse
+	controls []Control
+}
+
+// SetControls for bind response
+func (r *BindResponse) SetControls(controls ...Control) {
+	r.controls = controls
 }
 
 func (r *BindResponse) packet() *packet {
@@ -152,6 +158,10 @@ func (r *BindResponse) packet() *packet {
 	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
 
 	replyPacket.AppendChild(resultPacket)
+	if len(r.controls) > 0 {
+		replyPacket.AppendChild(encodeControls(r.controls))
+	}
+
 	return &packet{Packet: replyPacket}
 }
 

@@ -76,6 +76,11 @@ func testSimpleBindRequestPacket(t *testing.T, m SimpleBindMessage) *packet {
 	pkt.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, m.UserName, "User Name"))
 	pkt.AppendChild(ber.NewString(ber.ClassContext, ber.TypePrimitive, 0, string(m.Password), "Password"))
 	envelope.AppendChild(pkt)
+
+	if len(m.Controls) > 0 {
+		envelope.AppendChild(encodeControls(m.Controls))
+	}
+
 	return &packet{
 		Packet: envelope,
 	}

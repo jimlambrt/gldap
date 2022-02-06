@@ -70,6 +70,7 @@ type Directory struct {
 	groups             []*gldap.Entry
 	tokenGroups        map[string][]*gldap.Entry // string == SID
 	allowAnonymousBind bool
+	bindControls       []gldap.Control
 
 	// userDN is the base distinguished name to use when searching for users
 	userDN string
@@ -203,6 +204,11 @@ func (d *Directory) handleBind(t TestingT) func(w *gldap.ResponseWriter, r *glda
 				values := u.GetAttributeValues("password")
 				if len(values) > 0 && string(m.Password) == values[0] {
 					resp.SetResultCode(gldap.ResultSuccess)
+					if d.bindControls != nil {
+						d.mu.Lock()
+						defer d.mu.Unlock()
+						resp.SetControls(d.bindControls...)
+					}
 					return
 				}
 			}
@@ -612,6 +618,21 @@ func (d *Directory) ClientKey() string {
 	pemKey := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 	require.NotNil(pemKey)
 	return string(pemKey)
+}
+
+// BindControls returns all the current bind controls for the Directory
+func (d *Directory) BindControls() []*gldap.Entry {
+	return d.users
+}
+
+// SetBindControls sets the bind controls.
+func (d *Directory) SetBindControls(controls ...gldap.Control) {
+	if v, ok := interface{}(d.t).(HelperT); ok {
+		v.Helper()
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.bindControls = controls
 }
 
 // Users returns all the current user entries in the Directory
