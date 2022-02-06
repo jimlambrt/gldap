@@ -138,12 +138,12 @@ func searchHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 * Bind Requests
   * Simple Auth (user/pass) 
 * Search Requests
+* Modify Requests
 
 ### Near-term features 
 
 * Add Requests
 * Delete Requests
-* Modify Requests
 ### Long-term features
 
 * ???
