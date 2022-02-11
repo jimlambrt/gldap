@@ -114,6 +114,54 @@ func testRequestEnvelope(t *testing.T, messageID int) *ber.Packet {
 	return p
 }
 
+func testControlString(t *testing.T, controlType string, opt ...Option) *ControlString {
+	t.Helper()
+	require := require.New(t)
+	c, err := NewControlString(controlType, opt...)
+	require.NoError(err)
+	return c
+}
+
+func testControlManageDsaIT(t *testing.T, opt ...Option) *ControlManageDsaIT {
+	t.Helper()
+	require := require.New(t)
+	c, err := NewControlManageDsaIT(opt...)
+	require.NoError(err)
+	return c
+}
+
+func testControlMicrosoftNotification(t *testing.T, opt ...Option) *ControlMicrosoftNotification {
+	t.Helper()
+	require := require.New(t)
+	c, err := NewControlMicrosoftNotification(opt...)
+	require.NoError(err)
+	return c
+}
+
+func testControlMicrosoftServerLinkTTL(t *testing.T, opt ...Option) *ControlMicrosoftServerLinkTTL {
+	t.Helper()
+	require := require.New(t)
+	c, err := NewControlMicrosoftServerLinkTTL(opt...)
+	require.NoError(err)
+	return c
+}
+
+func testControlMicrosoftShowDeleted(t *testing.T, opt ...Option) *ControlMicrosoftShowDeleted {
+	t.Helper()
+	require := require.New(t)
+	c, err := NewControlMicrosoftShowDeleted(opt...)
+	require.NoError(err)
+	return c
+}
+
+func testControlPaging(t *testing.T, pagingSize uint32, opt ...Option) *ControlPaging {
+	t.Helper()
+	require := require.New(t)
+	c, err := NewControlPaging(uint32(pagingSize), opt...)
+	require.NoError(err)
+	return c
+}
+
 func TestWithDebug(t *testing.T) bool {
 	t.Helper()
 	if strings.ToLower(os.Getenv("DEBUG")) == "true" {

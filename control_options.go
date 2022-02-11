@@ -1,9 +1,11 @@
 package gldap
 
 type controlOptions struct {
-	withGrace     int
-	withExpire    int
-	withErrorCode int
+	withGrace        int
+	withExpire       int
+	withErrorCode    int
+	withCriticality  bool
+	withControlValue string
 
 	// test options
 	withTestType     string
@@ -49,6 +51,24 @@ func WithErrorCode(code uint) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*controlOptions); ok {
 			o.withErrorCode = int(code)
+		}
+	}
+}
+
+// WithCriticality specifies the criticality
+func WithCriticality(criticality bool) Option {
+	return func(o interface{}) {
+		if o, ok := o.(*controlOptions); ok {
+			o.withCriticality = criticality
+		}
+	}
+}
+
+// WithControlValue specifies the control value
+func WithControlValue(value string) Option {
+	return func(o interface{}) {
+		if o, ok := o.(*controlOptions); ok {
+			o.withControlValue = value
 		}
 	}
 }
