@@ -59,7 +59,7 @@ func Test_newRequest(t *testing.T) {
 					UserName:    "alice",
 					Password:    "fido",
 					Controls: []Control{
-						NewControlString("generic-control", false, "generic-value"),
+						testControlString(t, "generic-control", WithControlValue("generic-value")),
 					},
 				},
 			),
@@ -69,7 +69,7 @@ func Test_newRequest(t *testing.T) {
 				Password:    "fido",
 				AuthChoice:  "simple",
 				Controls: []Control{
-					NewControlString("generic-control", false, "generic-value"),
+					testControlString(t, "generic-control", WithControlValue("generic-value")),
 				},
 			},
 		},
@@ -105,7 +105,7 @@ func Test_newRequest(t *testing.T) {
 						},
 					},
 					Controls: []Control{
-						NewControlString("generic-control", false, "generic-value"),
+						testControlString(t, "generic-control", WithControlValue("generic-value")),
 					},
 				},
 			),
@@ -121,7 +121,7 @@ func Test_newRequest(t *testing.T) {
 					},
 				},
 				Controls: []Control{
-					NewControlString("generic-control", false, "generic-value"),
+					testControlString(t, "generic-control", WithControlValue("generic-value")),
 				},
 			},
 		},

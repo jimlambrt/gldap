@@ -14,25 +14,25 @@ import (
 
 func TestControlPaging(t *testing.T) {
 	runControlTest(t,
-		NewControlPaging(0),
+		testControlPaging(t, 0),
 		withTestType(ControlTypePaging),
 		withTestToString("Control Type: Paging (\"1.2.840.113556.1.4.319\")  Criticality: false  PagingSize: 0  Cookie: \"\""),
 	)
-	runControlTest(t, NewControlPaging(100))
+	runControlTest(t, testControlPaging(t, 100))
 }
 
 func TestControlManageDsaIT(t *testing.T) {
 	runControlTest(t,
-		NewControlManageDsaIT(true),
+		testControlManageDsaIT(t, WithCriticality(true)),
 		withTestType(ControlTypeManageDsaIT),
 		withTestToString("Control Type: Manage DSA IT (\"2.16.840.1.113730.3.4.2\")  Criticality: true"),
 	)
-	runControlTest(t, NewControlManageDsaIT(false))
+	runControlTest(t, testControlManageDsaIT(t))
 }
 
 func TestControlMicrosoftNotification(t *testing.T) {
 	runControlTest(t,
-		NewControlMicrosoftNotification(),
+		testControlMicrosoftNotification(t),
 		withTestType(ControlTypeMicrosoftNotification),
 		withTestToString("Control Type: Change Notification - Microsoft (\"1.2.840.113556.1.4.528\")"),
 	)
@@ -40,7 +40,7 @@ func TestControlMicrosoftNotification(t *testing.T) {
 
 func TestControlMicrosoftShowDeleted(t *testing.T) {
 	runControlTest(t,
-		NewControlMicrosoftShowDeleted(),
+		testControlMicrosoftShowDeleted(t),
 		withTestType(ControlTypeMicrosoftShowDeleted),
 		withTestToString("Control Type: Show Deleted Objects - Microsoft (\"1.2.840.113556.1.4.417\")"),
 	)
@@ -48,7 +48,7 @@ func TestControlMicrosoftShowDeleted(t *testing.T) {
 
 func TestControlMicrosoftServerLinkTTL(t *testing.T) {
 	runControlTest(t,
-		NewControlMicrosoftServerLinkTTL(),
+		testControlMicrosoftServerLinkTTL(t),
 		withTestType(ControlTypeMicrosoftServerLinkTTL),
 		withTestToString("Control Type: Return TTL-DNs for link values with associated expiry times - Microsoft (\"1.2.840.113556.1.4.2309\")"),
 	)
@@ -56,13 +56,13 @@ func TestControlMicrosoftServerLinkTTL(t *testing.T) {
 
 func TestControlString(t *testing.T) {
 	runControlTest(t,
-		NewControlString("x", true, "y"),
+		testControlString(t, "x", WithCriticality(true), WithControlValue("y")),
 		withTestType("x"),
 		withTestToString("Control Type:  (\"x\")  Criticality: true  Control Value: y"),
 	)
-	runControlTest(t, NewControlString("x", true, ""))
-	runControlTest(t, NewControlString("x", false, "y"))
-	runControlTest(t, NewControlString("x", false, ""))
+	runControlTest(t, testControlString(t, "x", WithCriticality(true)))
+	runControlTest(t, testControlString(t, "x", WithControlValue("y")))
+	runControlTest(t, testControlString(t, "x"))
 }
 
 func runControlTest(t *testing.T, originalControl Control, opt ...Option) {
@@ -113,32 +113,32 @@ func runControlTest(t *testing.T, originalControl Control, opt ...Option) {
 }
 
 func TestDescribeControlManageDsaIT(t *testing.T) {
-	runAddControlDescriptions(t, NewControlManageDsaIT(false), "Control Type (Manage DSA IT)")
-	runAddControlDescriptions(t, NewControlManageDsaIT(true), "Control Type (Manage DSA IT)", "Criticality")
+	runAddControlDescriptions(t, testControlManageDsaIT(t), "Control Type (Manage DSA IT)")
+	runAddControlDescriptions(t, testControlManageDsaIT(t, WithCriticality(true)), "Control Type (Manage DSA IT)", "Criticality")
 }
 
 func TestDescribeControlPaging(t *testing.T) {
-	runAddControlDescriptions(t, NewControlPaging(100), "Control Type (Paging)", "Control Value (Paging)")
-	runAddControlDescriptions(t, NewControlPaging(0), "Control Type (Paging)", "Control Value (Paging)")
+	runAddControlDescriptions(t, testControlPaging(t, 100), "Control Type (Paging)", "Control Value (Paging)")
+	runAddControlDescriptions(t, testControlPaging(t, 0), "Control Type (Paging)", "Control Value (Paging)")
 }
 
 func TestDescribeControlMicrosoftNotification(t *testing.T) {
-	runAddControlDescriptions(t, NewControlMicrosoftNotification(), "Control Type (Change Notification - Microsoft)")
+	runAddControlDescriptions(t, testControlMicrosoftNotification(t), "Control Type (Change Notification - Microsoft)")
 }
 
 func TestDescribeControlMicrosoftShowDeleted(t *testing.T) {
-	runAddControlDescriptions(t, NewControlMicrosoftShowDeleted(), "Control Type (Show Deleted Objects - Microsoft)")
+	runAddControlDescriptions(t, testControlMicrosoftShowDeleted(t), "Control Type (Show Deleted Objects - Microsoft)")
 }
 
 func TestDescribeControlMicrosoftServerLinkTTL(t *testing.T) {
-	runAddControlDescriptions(t, NewControlMicrosoftServerLinkTTL(), "Control Type (Return TTL-DNs for link values with associated expiry times - Microsoft)")
+	runAddControlDescriptions(t, testControlMicrosoftServerLinkTTL(t), "Control Type (Return TTL-DNs for link values with associated expiry times - Microsoft)")
 }
 
 func TestDescribeControlString(t *testing.T) {
-	runAddControlDescriptions(t, NewControlString("x", true, "y"), "Control Type ()", "Criticality", "Control Value")
-	runAddControlDescriptions(t, NewControlString("x", true, ""), "Control Type ()", "Criticality")
-	runAddControlDescriptions(t, NewControlString("x", false, "y"), "Control Type ()", "Control Value")
-	runAddControlDescriptions(t, NewControlString("x", false, ""), "Control Type ()")
+	runAddControlDescriptions(t, testControlString(t, "x", WithCriticality(true), WithControlValue("y")), "Control Type ()", "Criticality", "Control Value")
+	runAddControlDescriptions(t, testControlString(t, "x", WithCriticality(true)), "Control Type ()", "Criticality")
+	runAddControlDescriptions(t, testControlString(t, "x", WithControlValue("y")), "Control Type ()", "Control Value")
+	runAddControlDescriptions(t, testControlString(t, "x"), "Control Type ()")
 }
 
 func runAddControlDescriptions(t *testing.T, originalControl Control, childDescriptions ...string) {

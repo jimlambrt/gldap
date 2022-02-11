@@ -208,7 +208,8 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 			testdirectory.WithDefaults(t, &testdirectory.Defaults{UPNDomain: "example.com"}),
 			testdirectory.WithMembersOf(t, "admin"))...,
 	)
-	paging := gldap.NewControlPaging(60)
+	paging, err := gldap.NewControlPaging(60)
+	require.NoError(t, err)
 
 	td.SetControls(paging)
 	td.SetUsers(users...)

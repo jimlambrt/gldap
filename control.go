@@ -127,7 +127,7 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 	}
 	switch ControlType {
 	case ControlTypeManageDsaIT:
-		return NewControlManageDsaIT(Criticality), nil
+		return NewControlManageDsaIT(WithCriticality(Criticality))
 	case ControlTypePaging:
 		if value == nil {
 			return new(ControlPaging), nil
@@ -224,11 +224,11 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 		value.Value = c.Expire
 		return c, nil
 	case ControlTypeMicrosoftNotification:
-		return NewControlMicrosoftNotification(), nil
+		return NewControlMicrosoftNotification()
 	case ControlTypeMicrosoftShowDeleted:
-		return NewControlMicrosoftShowDeleted(), nil
+		return NewControlMicrosoftShowDeleted()
 	case ControlTypeMicrosoftServerLinkTTL:
-		return NewControlMicrosoftServerLinkTTL(), nil
+		return NewControlMicrosoftServerLinkTTL()
 	default:
 		c := new(ControlString)
 		c.ControlType = ControlType
@@ -270,13 +270,19 @@ func (c *ControlString) String() string {
 	return fmt.Sprintf("Control Type: %s (%q)  Criticality: %t  Control Value: %s", ControlTypeMap[c.ControlType], c.ControlType, c.Criticality, c.ControlValue)
 }
 
-// NewControlString returns a generic control
-func NewControlString(controlType string, criticality bool, controlValue string) *ControlString {
+// NewControlString returns a generic control.  Options supported:
+// WithCriticality and WithControlValue
+func NewControlString(controlType string, opt ...Option) (*ControlString, error) {
+	const op = "gldap.NewControlString"
+	if controlType == "" {
+		return nil, fmt.Errorf("%s: missing control type: %w", op, ErrInvalidParameter)
+	}
+	opts := getControlOpts(opt...)
 	return &ControlString{
 		ControlType:  controlType,
-		Criticality:  criticality,
-		ControlValue: controlValue,
-	}
+		Criticality:  opts.withCriticality,
+		ControlValue: opts.withControlValue,
+	}, nil
 }
 
 // ControlManageDsaIT implements the control described in https://tools.ietf.org/html/rfc3296
@@ -310,9 +316,11 @@ func (c *ControlManageDsaIT) String() string {
 		c.Criticality)
 }
 
-// NewControlManageDsaIT returns a ControlManageDsaIT control
-func NewControlManageDsaIT(Criticality bool) *ControlManageDsaIT {
-	return &ControlManageDsaIT{Criticality: Criticality}
+// NewControlManageDsaIT returns a ControlManageDsaIT control.  Supported
+// options: WithCriticality
+func NewControlManageDsaIT(opt ...Option) (*ControlManageDsaIT, error) {
+	opts := getControlOpts(opt...)
+	return &ControlManageDsaIT{Criticality: opts.withCriticality}, nil
 }
 
 // ControlMicrosoftNotification implements the control described in https://msdn.microsoft.com/en-us/library/aa366983(v=vs.85).aspx
@@ -339,9 +347,10 @@ func (c *ControlMicrosoftNotification) String() string {
 		ControlTypeMicrosoftNotification)
 }
 
-// NewControlMicrosoftNotification returns a ControlMicrosoftNotification control
-func NewControlMicrosoftNotification() *ControlMicrosoftNotification {
-	return &ControlMicrosoftNotification{}
+// NewControlMicrosoftNotification returns a ControlMicrosoftNotification
+// control.  No options are currently supported.
+func NewControlMicrosoftNotification(_ ...Option) (*ControlMicrosoftNotification, error) {
+	return &ControlMicrosoftNotification{}, nil
 }
 
 // ControlMicrosoftServerLinkTTL implements the control described in https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/f4f523a8-abc0-4b3a-a471-6b2fef135481?redirectedfrom=MSDN
@@ -368,9 +377,10 @@ func (c *ControlMicrosoftServerLinkTTL) String() string {
 		ControlTypeMicrosoftServerLinkTTL)
 }
 
-// NewControlMicrosoftServerLinkTTL returns a ControlMicrosoftServerLinkTTL control
-func NewControlMicrosoftServerLinkTTL() *ControlMicrosoftServerLinkTTL {
-	return &ControlMicrosoftServerLinkTTL{}
+// NewControlMicrosoftServerLinkTTL returns a ControlMicrosoftServerLinkTTL
+// control.  No options are currently supported.
+func NewControlMicrosoftServerLinkTTL(_ ...Option) (*ControlMicrosoftServerLinkTTL, error) {
+	return &ControlMicrosoftServerLinkTTL{}, nil
 }
 
 // ControlMicrosoftShowDeleted implements the control described in https://msdn.microsoft.com/en-us/library/aa366989(v=vs.85).aspx
@@ -397,9 +407,10 @@ func (c *ControlMicrosoftShowDeleted) String() string {
 		ControlTypeMicrosoftShowDeleted)
 }
 
-// NewControlMicrosoftShowDeleted returns a ControlMicrosoftShowDeleted control
-func NewControlMicrosoftShowDeleted() *ControlMicrosoftShowDeleted {
-	return &ControlMicrosoftShowDeleted{}
+// NewControlMicrosoftShowDeleted returns a ControlMicrosoftShowDeleted control.
+// No options are currently supported.
+func NewControlMicrosoftShowDeleted(_ ...Option) (*ControlMicrosoftShowDeleted, error) {
+	return &ControlMicrosoftShowDeleted{}, nil
 }
 
 // ControlBeheraPasswordPolicy implements the control described in https://tools.ietf.org/html/draft-behera-ldap-password-policy-10
@@ -634,8 +645,8 @@ func (c *ControlPaging) SetCookie(cookie []byte) {
 }
 
 // NewControlPaging returns a paging control
-func NewControlPaging(pagingSize uint32) *ControlPaging {
-	return &ControlPaging{PagingSize: pagingSize}
+func NewControlPaging(pagingSize uint32, _ ...Option) (*ControlPaging, error) {
+	return &ControlPaging{PagingSize: pagingSize}, nil
 }
 
 func addControlDescriptions(packet *ber.Packet) error {
