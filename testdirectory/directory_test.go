@@ -420,3 +420,98 @@ func TestDirectory_ModifyResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestDirectory_AddResponse(t *testing.T) {
+	t.Parallel()
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  "TestDirectory_AddResponse-logger",
+		Level: hclog.Error,
+	})
+	td := testdirectory.Start(t,
+		testdirectory.WithLogger(t, testLogger),
+		testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}),
+	)
+	users := testdirectory.NewUsers(t, []string{"alice", "bob", "eve"})
+	td.SetUsers(users...)
+
+	const (
+		alice = 0
+		bob   = 1
+		eve   = 2
+	)
+
+	tests := []struct {
+		name            string
+		dn              string
+		attributes      []ldap.Attribute
+		wantEntry       *gldap.Entry
+		wantErr         bool
+		wantErrContains string
+	}{
+		{
+			name: "alice",
+			dn:   fmt.Sprintf("%s=%s,%s", testdirectory.DefaultUserAttr, "joe", testdirectory.DefaultUserDN),
+			attributes: []ldap.Attribute{
+				{
+					Type: "email",
+					Vals: []string{"joe@example.com"},
+				},
+				{
+					Type: "givenname",
+					Vals: []string{"joe"},
+				},
+			},
+			wantEntry: &gldap.Entry{
+				DN: fmt.Sprintf("%s=%s,%s", testdirectory.DefaultUserAttr, "joe", testdirectory.DefaultUserDN),
+				Attributes: func() []*gldap.EntryAttribute {
+					attrs := append([]*gldap.EntryAttribute{}, gldap.NewEntryAttribute("email", []string{"joe@example.com"}))
+					attrs = append(attrs, gldap.NewEntryAttribute("givenname", []string{"joe"}))
+					return attrs
+				}(),
+			},
+		},
+
+		{
+			name: "existing-entry",
+			dn:   users[alice].DN,
+			attributes: []ldap.Attribute{
+				{
+					Type: "email",
+					Vals: []string{"alice@example.com"},
+				},
+			},
+			wantErr:         true,
+			wantErrContains: "Entry Already Exists",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			client := td.Conn()
+			defer func() { client.Close() }()
+
+			err := client.Add(&ldap.AddRequest{
+				DN:         tc.dn,
+				Attributes: tc.attributes,
+			})
+			if tc.wantErr {
+				require.Error(err)
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			result, err := client.Search(&ldap.SearchRequest{
+				BaseDN: tc.dn,
+				Filter: fmt.Sprintf("(%s)", tc.dn),
+			})
+			require.NoError(err)
+			assert.Equal(len(tc.wantEntry.Attributes), len(result.Entries[0].Attributes))
+			assert.Equal(tc.wantEntry.DN, result.Entries[0].DN)
+			for _, a := range tc.wantEntry.Attributes {
+				assert.Equal(tc.wantEntry.GetAttributeValues(a.Name), result.Entries[0].GetAttributeValues(a.Name))
+			}
+		})
+	}
+}

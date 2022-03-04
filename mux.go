@@ -93,7 +93,7 @@ func (m *Mux) ExtendedOperation(operationFn HandlerFunc, exName ExtendedOperatio
 // Modify will register a handler for modify operation requests.
 // Options supported: WithLabel
 func (m *Mux) Modify(modifyFn HandlerFunc, opt ...Option) error {
-	const op = "gldap.(Mux).Search"
+	const op = "gldap.(Mux).Modify"
 	if modifyFn == nil {
 		return fmt.Errorf("%s: missing HandlerFunc: %w", op, ErrInvalidParameter)
 	}
@@ -102,6 +102,27 @@ func (m *Mux) Modify(modifyFn HandlerFunc, opt ...Option) error {
 		baseRoute: &baseRoute{
 			h:       modifyFn,
 			routeOp: modifyRouteOperation,
+			label:   opts.withLabel,
+		},
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.routes = append(m.routes, r)
+	return nil
+}
+
+// Modify will register a handler for add operation requests.
+// Options supported: WithLabel
+func (m *Mux) Add(modifyFn HandlerFunc, opt ...Option) error {
+	const op = "gldap.(Mux).Add"
+	if modifyFn == nil {
+		return fmt.Errorf("%s: missing HandlerFunc: %w", op, ErrInvalidParameter)
+	}
+	opts := getRouteOpts(opt...)
+	r := &addRoute{
+		baseRoute: &baseRoute{
+			h:       modifyFn,
+			routeOp: addRouteOperation,
 			label:   opts.withLabel,
 		},
 	}

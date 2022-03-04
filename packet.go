@@ -126,6 +126,8 @@ func (p *packet) requestType() (requestType, error) {
 		return extendedRequestType, nil
 	case ApplicationModifyRequest:
 		return modifyRequestType, nil
+	case ApplicationAddRequest:
+		return addRequestType, nil
 	default:
 		return unknownRequestType, fmt.Errorf("%s: unhandled request type %d: %w", op, requestPacket.Tag, ErrInternal)
 	}
@@ -295,6 +297,66 @@ func (p *packet) simpleBindParameters() (string, Password, []Control, error) {
 	}
 
 	return userName, Password(password), controls, nil
+}
+
+type addParameters struct {
+	dn         string
+	attributes []Attribute
+	controls   []Control
+}
+
+// addParameters decodes the add request parameters from the packet
+func (p *packet) addParameters() (*addParameters, error) {
+	const op = "gldap.(Packet).addParameters"
+	const (
+		childDN         = 0
+		childAttributes = 1
+		childControls   = 2
+	)
+	var add addParameters
+	requestPacket, err := p.requestPacket()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	// validate that it's a search request
+	if requestPacket.Packet.Tag != ApplicationAddRequest {
+		return nil, fmt.Errorf("%s: not an add request, expected tag %d and got %d: %w", op, ApplicationAddRequest, requestPacket.Tag, ErrInvalidParameter)
+	}
+	// DN child
+	if err := requestPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagOctetString), withAssertChild(childDN)); err != nil {
+		return nil, fmt.Errorf("%s: missing/invalid DN: %w", op, ErrInvalidParameter)
+	}
+	add.dn = requestPacket.Children[childDN].Data.String()
+
+	if err := requestPacket.assert(ber.ClassUniversal, ber.TypeConstructed, withTag(ber.TagSequence), withAssertChild(childAttributes)); err != nil {
+		return nil, fmt.Errorf("%s: missing/invalid attributes: %w", op, ErrInvalidParameter)
+	}
+	attributesPackets := packet{
+		Packet: requestPacket.Children[childAttributes],
+	}
+	for _, attribute := range attributesPackets.Children {
+		attr, err := decodeAttribute(attribute)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to decode attribute packet: %w", op, err)
+		}
+		add.attributes = append(add.attributes, *attr)
+	}
+
+	controlPacket, err := p.controlPacket()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if controlPacket != nil {
+		add.controls = make([]Control, 0, len(controlPacket.Children))
+		for _, c := range controlPacket.Children {
+			ctrl, err := decodeControl(c)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", op, err)
+			}
+			add.controls = append(add.controls, ctrl)
+		}
+	}
+	return &add, nil
 }
 
 type searchParameters struct {

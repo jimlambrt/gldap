@@ -125,6 +125,69 @@ func Test_newRequest(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:      "valid-add",
+			requestID: 1,
+			conn:      &conn{},
+			packet: testAddRequestPacket(t,
+				AddMessage{
+					baseMessage: baseMessage{id: 1},
+					DN:          "uid=alice,ou=people,dc=example,dc=com",
+					Attributes: []Attribute{
+						{
+							Type: "mail",
+							Vals: []string{"alice@example.com"},
+						},
+						{
+							Type: "givenname",
+							Vals: []string{"alice"},
+						},
+					},
+					Controls: []Control{
+						testControlString(t, "generic-control", WithControlValue("generic-value")),
+					},
+				},
+			),
+			wantMsg: &AddMessage{
+				baseMessage: baseMessage{id: 1},
+				DN:          "uid=alice,ou=people,dc=example,dc=com",
+				Attributes: []Attribute{
+					{
+						Type: "mail",
+						Vals: []string{"alice@example.com"},
+					},
+					{
+						Type: "givenname",
+						Vals: []string{"alice"},
+					},
+				},
+				Controls: []Control{
+					testControlString(t, "generic-control", WithControlValue("generic-value")),
+				},
+			},
+		},
+		{
+			name:      "invalid-add",
+			requestID: 1,
+			conn:      &conn{},
+			packet: func() *packet {
+				envelope := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
+				envelope.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, int64(1), "MessageID"))
+
+				pkt := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationAddRequest, nil, "Add Request")
+				pkt.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, "uid=alice", "DN"))
+				attributes := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attributes")
+				pkt.AppendChild(attributes)
+				seq := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attribute")
+				seq.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypeConstructed, ber.TagBoolean, "false", "invalid-type-bool"))
+				// missing values
+				attributes.AppendChild(seq)
+				envelope.AppendChild(pkt)
+				return &packet{Packet: envelope}
+			}(),
+			wantErr:         true,
+			wantErrContains: "failed to decode attribute packet",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

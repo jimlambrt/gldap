@@ -47,6 +47,9 @@ const (
 //  * Bind
 //  * Search
 //  * StartTLS
+//	* Search
+//	* Modify
+//	* Add
 //
 // Making requests to the Directory is facilitated by:
 //  * Directory.Conn()      returns a *ldap.Conn connected to the Directory (honors WithMTLS options from start)
@@ -124,7 +127,8 @@ func Start(t TestingT, opt ...Option) *Directory {
 	mux.Search(d.handleSearchUsers(t), gldap.WithBaseDN(d.userDN), gldap.WithLabel("Search - Users"))
 	mux.Search(d.handleSearchGroups(t), gldap.WithBaseDN(d.groupDN), gldap.WithLabel("Search - Groups"))
 	mux.Search(d.handleSearchGeneric(t), gldap.WithLabel("Search - Generic"))
-	mux.Modify(d.handleModify(t))
+	mux.Modify(d.handleModify(t), gldap.WithLabel("Modify"))
+	mux.Add(d.handleAdd(t), gldap.WithLabel("Add"))
 
 	d.s.Router(mux)
 
@@ -432,7 +436,7 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 }
 
 func (d *Directory) handleModify(t TestingT) func(w *gldap.ResponseWriter, r *gldap.Request) {
-	const op = "testdirectory.(Directory).handleSearchUsers"
+	const op = "testdirectory.(Directory).handleModify"
 	if v, ok := interface{}(t).(HelperT); ok {
 		v.Helper()
 	}
@@ -497,6 +501,39 @@ func (d *Directory) handleModify(t TestingT) func(w *gldap.ResponseWriter, r *gl
 				}
 			}
 		}
+		res.SetResultCode(gldap.ResultSuccess)
+	}
+}
+
+func (d *Directory) handleAdd(t TestingT) func(w *gldap.ResponseWriter, r *gldap.Request) {
+	const op = "testdirectory.(Directory).handleAdd"
+	if v, ok := interface{}(t).(HelperT); ok {
+		v.Helper()
+	}
+	return func(w *gldap.ResponseWriter, r *gldap.Request) {
+		d.logger.Debug(op)
+		res := r.NewResponse(gldap.WithApplicationCode(gldap.ApplicationAddResponse), gldap.WithResponseCode(gldap.ResultOperationsError))
+		defer w.Write(res)
+		m, err := r.GetAddMessage()
+		if err != nil {
+			d.logger.Error("not an add message: %s", "op", op, "err", err)
+			return
+		}
+		d.logger.Info("add request", "dn", m.DN)
+
+		if found, _ := find(d.t, fmt.Sprintf("(%s)", m.DN), d.users); found {
+			res.SetResultCode(gldap.ResultEntryAlreadyExists)
+			res.SetDiagnosticMessage(fmt.Sprintf("entry exists for DN: %s", m.DN))
+			return
+		}
+		attrs := map[string][]string{}
+		for _, a := range m.Attributes {
+			attrs[a.Type] = a.Vals
+		}
+		newEntry := gldap.NewEntry(m.DN, attrs)
+		d.mu.Lock()
+		defer d.mu.Unlock()
+		d.users = append(d.users, newEntry)
 		res.SetResultCode(gldap.ResultSuccess)
 	}
 }

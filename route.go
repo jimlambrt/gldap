@@ -23,6 +23,9 @@ const (
 	// modifyRouteOperation is a route supporting the modify operation
 	modifyRouteOperation routeOperation = "modify"
 
+	// addRouteOperation is a route supporting the add operation
+	addRouteOperation routeOperation = "add"
+
 	// defaultRouteOperation is a default route which is used when there are no routes
 	// defined for a particular operation
 	defaultRouteOperation routeOperation = "noRoute"
@@ -75,11 +78,31 @@ type modifyRoute struct {
 	*baseRoute
 }
 
+type addRoute struct {
+	*baseRoute
+}
+
+func (r *addRoute) match(req *Request) bool {
+	if req == nil {
+		return false
+	}
+	if r.op() != req.routeOp {
+		return false
+	}
+	if _, ok := req.message.(*AddMessage); !ok {
+		return false
+	}
+	return true
+}
+
 func (r *modifyRoute) match(req *Request) bool {
 	if req == nil {
 		return false
 	}
 	if r.op() != req.routeOp {
+		return false
+	}
+	if _, ok := req.message.(*ModifyMessage); !ok {
 		return false
 	}
 	return true
