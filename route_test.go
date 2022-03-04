@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSearchRoute_match(t *testing.T) {
@@ -319,4 +320,145 @@ func TestExtendedRoute_match(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAddRoute_match(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		route     *addRoute
+		req       *Request
+		wantMatch bool
+	}{
+		{
+			name: "req-nil",
+			route: &addRoute{
+				baseRoute: &baseRoute{
+					routeOp: addRouteOperation,
+				},
+			},
+		},
+		{
+			name: "op-mismatched",
+			route: &addRoute{
+				baseRoute: &baseRoute{
+					routeOp: addRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: searchRouteOperation,
+			},
+		},
+		{
+			name: "not-a-add-op-msg",
+			route: &addRoute{
+				baseRoute: &baseRoute{
+					routeOp: addRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: addRouteOperation,
+				message: &SearchMessage{},
+			},
+		},
+		{
+			name: "success",
+			route: &addRoute{
+				baseRoute: &baseRoute{
+					routeOp: addRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: addRouteOperation,
+				message: &AddMessage{},
+			},
+			wantMatch: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+			match := tc.route.match(tc.req)
+			switch tc.wantMatch {
+			case true:
+				assert.True(match)
+			case false:
+				assert.False(match)
+			}
+		})
+	}
+}
+
+func TestModifyRoute_match(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		route     *modifyRoute
+		req       *Request
+		wantMatch bool
+	}{
+		{
+			name: "req-nil",
+			route: &modifyRoute{
+				baseRoute: &baseRoute{
+					routeOp: modifyRouteOperation,
+				},
+			},
+		},
+		{
+			name: "op-mismatched",
+			route: &modifyRoute{
+				baseRoute: &baseRoute{
+					routeOp: modifyRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: searchRouteOperation,
+			},
+		},
+		{
+			name: "not-a-modify-op-msg",
+			route: &modifyRoute{
+				baseRoute: &baseRoute{
+					routeOp: modifyRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: modifyRouteOperation,
+				message: &SearchMessage{},
+			},
+		},
+		{
+			name: "success",
+			route: &modifyRoute{
+				baseRoute: &baseRoute{
+					routeOp: modifyRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: modifyRouteOperation,
+				message: &ModifyMessage{},
+			},
+			wantMatch: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+			match := tc.route.match(tc.req)
+			switch tc.wantMatch {
+			case true:
+				assert.True(match)
+			case false:
+				assert.False(match)
+			}
+		})
+	}
+}
+
+func TestBaseRoute_match(t *testing.T) {
+	t.Run("always-fail", func(t *testing.T) {
+		r := baseRoute{}
+		require.False(t, r.match(&Request{}))
+	})
 }

@@ -108,6 +108,26 @@ func testModifyRequestPacket(t *testing.T, m ModifyMessage) *packet {
 	}
 }
 
+func testAddRequestPacket(t *testing.T, m AddMessage) *packet {
+	t.Helper()
+	envelope := testRequestEnvelope(t, int(m.GetID()))
+	pkt := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationAddRequest, nil, "Add Request")
+	pkt.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, m.DN, "DN"))
+	attributes := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attributes")
+	for _, attr := range m.Attributes {
+		attributes.AppendChild(attr.encode())
+	}
+	pkt.AppendChild(attributes)
+
+	envelope.AppendChild(pkt)
+	if len(m.Controls) > 0 {
+		envelope.AppendChild(encodeControls(m.Controls))
+	}
+	return &packet{
+		Packet: envelope,
+	}
+}
+
 func testRequestEnvelope(t *testing.T, messageID int) *ber.Packet {
 	p := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
 	p.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, int64(messageID), "MessageID"))
