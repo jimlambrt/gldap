@@ -310,7 +310,7 @@ type searchParameters struct {
 }
 
 func (p *packet) searchParmeters() (*searchParameters, error) {
-	const op = "gldap.(Packet).simpleBindParameters"
+	const op = "gldap.(Packet).searchParmeters"
 	const (
 		childBaseDN       = 0
 		childScope        = 1
@@ -400,6 +400,7 @@ func (p *packet) searchParmeters() (*searchParameters, error) {
 	searchFor.attributes = make([]string, 0, len(attributesPacket.Children))
 	for idx, attribute := range attributesPacket.Children {
 		if err := attributesPacket.assert(ber.ClassUniversal, ber.TypeConstructed, withTag(ber.TagOctetString), withAssertChild(idx)); err != nil {
+			return nil, fmt.Errorf("%s: invalid attribute child packet: %w", op, err)
 		}
 		searchFor.attributes = append(searchFor.attributes, attribute.Data.String())
 	}
