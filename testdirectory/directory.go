@@ -45,14 +45,13 @@ const (
 // test ldap operations are supported:
 //
 //  * Bind
-//  * Search
 //  * StartTLS
-//	* Search
-//	* Modify
-//	* Add
+//  * Search
+//  * Modify
+//  * Add
 //
 // Making requests to the Directory is facilitated by:
-//  * Directory.Conn()      returns a *ldap.Conn connected to the Directory (honors WithMTLS options from start)
+//  * Directory.Conn()		returns a *ldap.Conn connected to the Directory (honors WithMTLS options from start)
 //  * Directory.Cert() 		returns the pem-encoded CA certificate used by the directory.
 //  * Directory.Port() 		returns the port the directory is listening on.
 //  * Directory.ClientCert() 	returns a client cert for mtls
