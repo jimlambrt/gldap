@@ -35,6 +35,9 @@ type conn struct {
 // to serve requests to an ldap client.
 func newConn(shutdownCtx context.Context, connID int, netConn net.Conn, logger hclog.Logger, router *Mux) (*conn, error) {
 	const op = "gldap.NewConn"
+	if shutdownCtx == nil {
+		return nil, fmt.Errorf("%s: missing shutdown context: %w", op, ErrInvalidParameter)
+	}
 	if connID == 0 {
 		return nil, fmt.Errorf("%s: missing connection id: %w", op, ErrInvalidParameter)
 	}
