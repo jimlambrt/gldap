@@ -2,6 +2,7 @@ package gldap
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -46,17 +47,27 @@ func NewEntry(dn string, attributes map[string][]string) *Entry {
 	}
 }
 
-// PrettyPrint outputs a human-readable description indenting
-func (e *Entry) PrettyPrint(indent int) {
-	fmt.Printf("%sDN: %s\n", strings.Repeat(" ", indent), e.DN)
+// PrettyPrint outputs a human-readable description indenting.  Supported
+// options: WithWriter
+func (e *Entry) PrettyPrint(indent int, opt ...Option) {
+	opts := getGeneralOpts(opt...)
+	if opts.withWriter == nil {
+		opts.withWriter = os.Stdout
+	}
+	fmt.Fprintf(opts.withWriter, "%sDN: %s\n", strings.Repeat(" ", indent), e.DN)
 	for _, attr := range e.Attributes {
-		attr.PrettyPrint(indent + 2)
+		attr.PrettyPrint(indent+2, opt...)
 	}
 }
 
-// PrettyPrint outputs a human-readable description with indenting
-func (e *EntryAttribute) PrettyPrint(indent int) {
-	fmt.Printf("%s%s: %s\n", strings.Repeat(" ", indent), e.Name, e.Values)
+// PrettyPrint outputs a human-readable description with indenting.  Supported
+// options: WithWriter
+func (e *EntryAttribute) PrettyPrint(indent int, opt ...Option) {
+	opts := getGeneralOpts(opt...)
+	if opts.withWriter == nil {
+		opts.withWriter = os.Stdout
+	}
+	fmt.Fprintf(opts.withWriter, "%s%s: %s\n", strings.Repeat(" ", indent), e.Name, e.Values)
 }
 
 // EntryAttribute holds a single attribute
