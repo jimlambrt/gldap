@@ -162,7 +162,7 @@ func runAddControlDescriptions(t *testing.T, originalControl Control, childDescr
 	}
 }
 
-func TestDecodeControl(t *testing.T) {
+func Test_decodeControl(t *testing.T) {
 	type args struct {
 		packet *ber.Packet
 	}
@@ -238,6 +238,161 @@ func TestDecodeControl(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("DecodeControl() got = %v, want %v", got, tt.want)
 			}
+		})
+	}
+
+	moreTests := []struct {
+		name            string
+		p               *ber.Packet
+		wantErr         bool
+		wantErrIs       error
+		wantErrContains string
+	}{
+		{
+			name:            "missing-packet",
+			wantErr:         true,
+			wantErrIs:       ErrInvalidParameter,
+			wantErrContains: "packet is nil",
+		},
+		{
+			name:            "zero-children",
+			p:               &ber.Packet{},
+			wantErr:         true,
+			wantErrContains: "at least one child is required",
+		},
+		{
+			name: "too-many-children",
+			p: &ber.Packet{
+				Children: []*ber.Packet{
+					{}, {}, {}, {},
+				},
+			},
+			wantErr:         true,
+			wantErrContains: "more than 3 children is invalid",
+		},
+		{
+			name: "paging-without-a-value",
+			p: func() *ber.Packet {
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypePaging, "Control Type ("+ControlTypeMap[ControlTypePaging]+")"))
+				return packet
+			}(),
+		},
+		{
+			name: "paging-with-no-children",
+			p: func() *ber.Packet {
+				var buf []byte
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypePaging, "Control Type ("+ControlTypeMap[ControlTypePaging]+")"))
+				packet.AppendChild(&ber.Packet{
+					Data: bytes.NewBuffer(buf),
+				})
+				return packet
+			}(),
+			wantErr:         true,
+			wantErrContains: "paging control value must have a least 1 child",
+		},
+		{
+			name: "VChuPasswordWarning-without-a-value",
+			p: func() *ber.Packet {
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeVChuPasswordWarning, "Control Type ("+ControlTypeMap[ControlTypeVChuPasswordWarning]+")"))
+				return packet
+			}(),
+		},
+		{
+			name: "VChuPasswordWarning-without-invalid-value",
+			p: func() *ber.Packet {
+				var buf []byte
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeVChuPasswordWarning, "Control Type ("+ControlTypeMap[ControlTypeVChuPasswordWarning]+")"))
+				packet.AppendChild(&ber.Packet{
+					Data: bytes.NewBuffer(buf),
+				})
+				return packet
+			}(),
+			wantErr:         true,
+			wantErrContains: "failed to parse value as int",
+		},
+		{
+			name: "BeheraPassword-without-a-value",
+			p: func() *ber.Packet {
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeBeheraPasswordPolicy, "Control Type ("+ControlTypeMap[ControlTypeBeheraPasswordPolicy]+")"))
+				return packet
+			}(),
+		},
+		{
+			name: "BeheraPassword-value-must-have-a-child",
+			p: func() *ber.Packet {
+				var buf []byte
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeBeheraPasswordPolicy, "Control Type ("+ControlTypeMap[ControlTypeBeheraPasswordPolicy]+")"))
+				packet.AppendChild(&ber.Packet{
+					Data: bytes.NewBuffer(buf),
+				})
+				return packet
+			}(),
+			wantErr:         true,
+			wantErrContains: "behera control value must have a least 1 child",
+		},
+		{
+			name: "BeheraPassword-warning-must-be-an-integer",
+			p: func() *ber.Packet {
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeBeheraPasswordPolicy, "Control Type ("+ControlTypeMap[ControlTypeBeheraPasswordPolicy]+")"))
+				// control value packet for GraceAuthNsRemaining
+				valuePacket := ber.Encode(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, nil, "")
+				sequencePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "")
+
+				contextPacket := ber.NewInteger(ber.ClassContext, ber.TypePrimitive, 0x01, 50, "")
+				sequencePacket.AppendChild(contextPacket)
+
+				valuePacket.AppendChild(sequencePacket)
+				packet.AppendChild(valuePacket)
+
+				return packet
+			}(),
+			wantErr:         true,
+			wantErrContains: "failed to decode data bytes",
+		},
+		{
+			name: "BeheraPassword-err-not-valid-enum",
+			p: func() *ber.Packet {
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeBeheraPasswordPolicy, "Control Type ("+ControlTypeMap[ControlTypeBeheraPasswordPolicy]+")"))
+
+				valuePacket := ber.Encode(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, nil, "")
+				sequencePacket := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "")
+
+				contextPacket := ber.NewInteger(ber.ClassContext, ber.TypePrimitive, 0x01, 1000, "")
+				sequencePacket.AppendChild(contextPacket)
+
+				valuePacket.AppendChild(sequencePacket)
+				packet.AppendChild(valuePacket)
+
+				return packet
+			}(),
+			wantErr:         true,
+			wantErrContains: "invalid PasswordPolicyResponse enum value",
+		},
+	}
+	for _, tc := range moreTests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			got, err := decodeControl(tc.p)
+			if tc.wantErr {
+				require.Error(err)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			assert.NotNil(got)
 		})
 	}
 }
@@ -508,6 +663,110 @@ func Test_NewControlBeheraPassword(t *testing.T) {
 			code, codeString := c.ErrorCode()
 			assert.Equal(int(c.error), code)
 			assert.Equal(c.errorString, codeString)
+		})
+	}
+}
+
+func TestNewControlString(t *testing.T) {
+	tests := map[string]struct {
+		controlType     string
+		opts            []Option
+		want            *ControlString
+		wantErr         bool
+		wantErrIs       error
+		wantErrContains string
+	}{
+		"missing-type": {
+			wantErr:         true,
+			wantErrIs:       ErrInvalidParameter,
+			wantErrContains: "missing control type",
+		},
+		"valid": {
+			controlType: "valid",
+			opts:        []Option{WithCriticality(true), WithControlValue("value")},
+			want: &ControlString{
+				ControlType:  "valid",
+				Criticality:  true,
+				ControlValue: "value",
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			got, err := NewControlString(tc.controlType, tc.opts...)
+			if tc.wantErr {
+				require.Error(err)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			assert.NotNil(got)
+		})
+	}
+}
+
+func TestControlPaging_SetCookie(t *testing.T) {
+	p := &ControlPaging{}
+	p.SetCookie([]byte("cookie"))
+	assert.Equal(t, &ControlPaging{Cookie: []byte("cookie")}, p)
+}
+
+func Test_addControlDescriptions(t *testing.T) {
+	tests := map[string]struct {
+		p               *ber.Packet
+		want            *ber.Packet
+		wantErr         bool
+		wantErrIs       error
+		wantErrContains string
+	}{
+		"missing-packet": {
+			wantErr:         true,
+			wantErrIs:       ErrInvalidParameter,
+			wantErrContains: "missing packet",
+		},
+		"zero-children": {
+			p: func() *ber.Packet {
+				packet := ber.Encode(ber.ClassContext, ber.TypeConstructed, 0, nil, "Controls")
+				packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeBeheraPasswordPolicy, "Control Type ("+ControlTypeMap[ControlTypeBeheraPasswordPolicy]+")"))
+				return packet
+			}(),
+			wantErr:         true,
+			wantErrContains: "at least one child is required for a control type",
+		},
+		"too-many-children": {
+			p: func() *ber.Packet {
+				packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Controll")
+				child := ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeBeheraPasswordPolicy, "Control Type ("+ControlTypeMap[ControlTypeBeheraPasswordPolicy]+")")
+				child.Children = []*ber.Packet{{}, {}, {}, {}}
+				packet.AppendChild(child)
+				return packet
+			}(),
+			wantErr:         true,
+			wantErrContains: "more than 3 children for control packet found",
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			err := addControlDescriptions(tc.p)
+			if tc.wantErr {
+				require.Error(err)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			assert.Equal(tc.want, tc.p)
 		})
 	}
 }

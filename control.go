@@ -90,6 +90,9 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 		Criticality = false
 		value       *ber.Packet
 	)
+	if packet == nil {
+		return nil, fmt.Errorf("%s: packet is nil: %w", op, ErrInvalidParameter)
+	}
 
 	switch len(packet.Children) {
 	case 0:
@@ -143,6 +146,9 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 			value.Value = nil
 			value.AppendChild(valueChildren)
 		}
+		if len(value.Children) < 1 {
+			return nil, fmt.Errorf("%s: paging control value must have a least 1 child: %w", op, ErrInvalidParameter)
+		}
 		value = value.Children[0]
 		value.Description = "Search Control Value"
 		value.Children[0].Description = "Paging Size"
@@ -172,6 +178,9 @@ func decodeControl(packet *ber.Packet) (Control, error) {
 			value.Data.Truncate(0)
 			value.Value = nil
 			value.AppendChild(valueChildren)
+		}
+		if len(value.Children) == 0 {
+			return nil, fmt.Errorf("%s: behera control value must have a least 1 child: %w", op, ErrInvalidParameter)
 		}
 
 		sequence := value.Children[0]
@@ -650,6 +659,10 @@ func NewControlPaging(pagingSize uint32, _ ...Option) (*ControlPaging, error) {
 }
 
 func addControlDescriptions(packet *ber.Packet) error {
+	const op = "gldap.addControlDescriptions"
+	if packet == nil {
+		return fmt.Errorf("%s: missing packet: %w", op, ErrInvalidParameter)
+	}
 	packet.Description = "Controls"
 	for _, child := range packet.Children {
 		var value *ber.Packet
@@ -658,7 +671,7 @@ func addControlDescriptions(packet *ber.Packet) error {
 		switch len(child.Children) {
 		case 0:
 			// at least one child is required for control type
-			return fmt.Errorf("at least one child is required for control type")
+			return fmt.Errorf("at least one child is required for a control type")
 
 		case 1:
 			// just type, no criticality or value
