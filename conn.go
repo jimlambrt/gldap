@@ -177,8 +177,8 @@ func (c *conn) readPacket(requestID int) (*packet, error) {
 
 func (c *conn) initConn(netConn net.Conn) error {
 	const op = "gldap.(Conn).initConn"
-	if c == nil {
-		return fmt.Errorf("%s: missing connection: %w", op, ErrInvalidParameter)
+	if netConn == nil {
+		return fmt.Errorf("%s: missing net conn: %w", op, ErrInvalidParameter)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
