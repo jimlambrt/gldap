@@ -109,5 +109,4 @@ func TestAttribute_decode(t *testing.T) {
 			assert.NotNil(got)
 		})
 	}
-
 }
