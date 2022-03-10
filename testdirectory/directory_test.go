@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/go-ldap/ldap/v3"
@@ -76,6 +77,18 @@ func Test_Start(t *testing.T) {
 
 		err := c.Bind(userDN, testPwd)
 		require.NoError(err)
+
+		clientCert, err := tls.X509KeyPair([]byte(td.ClientCert()), []byte(td.ClientKey()))
+		require.NoError(err)
+		certpool := x509.NewCertPool()
+		certpool.AppendCertsFromPEM([]byte(td.Cert()))
+		tlsConfig := &tls.Config{
+			RootCAs:      certpool,
+			Certificates: []tls.Certificate{clientCert},
+		}
+		conn, err := ldap.DialURL(fmt.Sprintf("ldaps://localhost:%d", td.Port()), ldap.DialWithTLSConfig(tlsConfig))
+		require.NoError(err)
+		conn.Close()
 	})
 	t.Run("start-tls", func(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
@@ -104,6 +117,26 @@ func Test_Start(t *testing.T) {
 		err = c.Bind(userDN, testPwd)
 		require.NoError(err)
 	})
+	t.Run("start-with-TestingT", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+		buf := &strings.Builder{}
+		bufLogger := hclog.New(&hclog.LoggerOptions{
+			Name:   "my-app",
+			Level:  hclog.LevelFromString("DEBUG"),
+			Output: buf,
+		})
+		l, err := testdirectory.NewLogger(bufLogger)
+		require.NoError(err)
+		assert.NotNil(l)
+
+		td := testdirectory.Start(l, testdirectory.WithLogger(l, bufLogger))
+		td.Stop()
+		assert.Contains(buf.String(), "stopped")
+	})
+	t.Run("start-gldap.WithDisablePanicRecovery", func(t *testing.T) {
+		// not sure there's anything that's assertable here...
+		_ = testdirectory.Start(t, testdirectory.WithDisablePanicRecovery(t, true))
+	})
 }
 
 func TestDirectory_SimpleBindResponse(t *testing.T) {
@@ -116,6 +149,11 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 		testdirectory.WithLogger(t, testLogger),
 		testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}),
 	)
+
+	p, err := gldap.NewControlBeheraPasswordPolicy(gldap.WithGraceAuthNsRemaining(60))
+	require.NoError(t, err)
+	td.SetControls(p)
+
 	users := testdirectory.NewUsers(t, []string{"alice", "bob"})
 	td.SetUsers(users...)
 
@@ -164,10 +202,10 @@ func TestDirectory_SimpleBindResponse(t *testing.T) {
 	}
 }
 
-func TestDirectory_SearchUsersResponse(t *testing.T) {
+func TestDirectory_SearchResponse(t *testing.T) {
 	t.Parallel()
 	testLogger := hclog.New(&hclog.LoggerOptions{
-		Name:  "TestDirectory_SearchUsersResponse-logger",
+		Name:  "TestDirectory_SearchResponse-logger",
 		Level: hclog.Error,
 	})
 
@@ -204,7 +242,7 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 		name            string
 		filter          string
 		baseDN          string
-		wantEntry       *gldap.Entry
+		wantEntries     []*gldap.Entry
 		wantErr         bool
 		wantErrContains string
 	}{
@@ -216,16 +254,22 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 			wantErrContains: `LDAP Result Code 32 "No Such Object"`,
 		},
 		{
-			name:      "alice-found",
-			filter:    fmt.Sprintf("(%s=alice,%s)", testdirectory.DefaultUserAttr, testdirectory.DefaultUserDN),
-			baseDN:    testdirectory.DefaultUserDN,
-			wantEntry: users[0],
+			name:        "alice-found",
+			filter:      fmt.Sprintf("(%s=alice,%s)", testdirectory.DefaultUserAttr, testdirectory.DefaultUserDN),
+			baseDN:      testdirectory.DefaultUserDN,
+			wantEntries: []*gldap.Entry{users[0]},
 		},
 		{
-			name:      "admin-group-found",
-			filter:    fmt.Sprintf("(%s=admin,%s)", testdirectory.DefaultGroupAttr, testdirectory.DefaultGroupDN),
-			baseDN:    testdirectory.DefaultGroupDN,
-			wantEntry: groups[0],
+			name:        "admin-group-found",
+			filter:      fmt.Sprintf("(%s=admin,%s)", testdirectory.DefaultGroupAttr, testdirectory.DefaultGroupDN),
+			baseDN:      testdirectory.DefaultGroupDN,
+			wantEntries: []*gldap.Entry{groups[0]},
+		},
+		{
+			name:        "token-group-found",
+			filter:      fmt.Sprintf("(%s=admin,%s)", testdirectory.DefaultGroupAttr, testdirectory.DefaultGroupDN),
+			baseDN:      "<SID=S-1-1>",
+			wantEntries: []*gldap.Entry{groups[0]},
 		},
 		{
 			name:            "group-not-found",
@@ -235,10 +279,10 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 			wantErrContains: `LDAP Result Code 32 "No Such Object"`,
 		},
 		{
-			name:      "admin-member-found",
-			filter:    fmt.Sprintf("(%s=alice,%s)", testdirectory.DefaultUserAttr, testdirectory.DefaultUserDN),
-			baseDN:    testdirectory.DefaultGroupDN,
-			wantEntry: groups[0],
+			name:        "admin-member-found",
+			filter:      fmt.Sprintf("(%s=alice,%s)", testdirectory.DefaultUserAttr, testdirectory.DefaultUserDN),
+			baseDN:      testdirectory.DefaultGroupDN,
+			wantEntries: []*gldap.Entry{groups[0]},
 		},
 		{
 			name:            "admin-member-not-found",
@@ -248,10 +292,10 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 			wantErrContains: `LDAP Result Code 32 "No Such Object"`,
 		},
 		{
-			name:      "admin-member-found-upn",
-			filter:    fmt.Sprintf("(userPrincipalName=eve@%s,%s)", "example.com", testdirectory.DefaultUserDN),
-			baseDN:    testdirectory.DefaultGroupDN,
-			wantEntry: groups[1],
+			name:        "admin-member-found-upn",
+			filter:      fmt.Sprintf("(userPrincipalName=eve@%s,%s)", "example.com", testdirectory.DefaultUserDN),
+			baseDN:      testdirectory.DefaultGroupDN,
+			wantEntries: []*gldap.Entry{groups[1]},
 		},
 	}
 
@@ -260,9 +304,10 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 			assert, require := assert.New(t), require.New(t)
 			client := td.Conn()
 			defer func() { client.Close() }()
-			_, err := client.Search(&ldap.SearchRequest{
-				BaseDN: tc.baseDN,
-				Filter: tc.filter,
+			results, err := client.Search(&ldap.SearchRequest{
+				BaseDN:     tc.baseDN,
+				Filter:     tc.filter,
+				Attributes: []string{"name", "email", "password"},
 			})
 			if tc.wantErr {
 				require.Error(err)
@@ -272,6 +317,16 @@ func TestDirectory_SearchUsersResponse(t *testing.T) {
 				return
 			}
 			assert.NoError(err)
+			found := []*gldap.Entry{}
+			for _, e := range results.Entries {
+				attrs := map[string][]string{}
+				for _, a := range e.Attributes {
+					attrs[a.Name] = a.Values
+				}
+				entry := gldap.NewEntry(e.DN, attrs)
+				found = append(found, entry)
+			}
+			assert.Equal(tc.wantEntries, found)
 		})
 	}
 }
@@ -503,8 +558,9 @@ func TestDirectory_AddResponse(t *testing.T) {
 			}
 			require.NoError(err)
 			result, err := client.Search(&ldap.SearchRequest{
-				BaseDN: tc.dn,
-				Filter: fmt.Sprintf("(%s)", tc.dn),
+				BaseDN:     tc.dn,
+				Filter:     fmt.Sprintf("(%s)", tc.dn),
+				Attributes: []string{"name", "email", "password"},
 			})
 			require.NoError(err)
 			assert.Equal(len(tc.wantEntry.Attributes), len(result.Entries[0].Attributes))
@@ -514,4 +570,54 @@ func TestDirectory_AddResponse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetters(t *testing.T) {
+	t.Parallel()
+	assert, require := assert.New(t), require.New(t)
+
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  "TestDirectory_AddResponse-logger",
+		Level: hclog.Error,
+	})
+	td := testdirectory.Start(t,
+		testdirectory.WithLogger(t, testLogger),
+	)
+	groups := []*gldap.Entry{
+		testdirectory.NewGroup(t, "admin", []string{"alice"}),
+		testdirectory.NewGroup(t, "admin-upn", []string{"eve"}, testdirectory.WithDefaults(t, &testdirectory.Defaults{UPNDomain: "example.com"})),
+	}
+
+	tokenGroups := map[string][]*gldap.Entry{
+		"S-1-1": {
+			testdirectory.NewGroup(t, "admin", []string{"alice"}),
+		},
+	}
+	sidBytes, err := gldap.SIDBytes(1, 1)
+	require.NoError(err)
+
+	users := testdirectory.NewUsers(t, []string{"alice", "bob"}, testdirectory.WithMembersOf(t, "admin"), testdirectory.WithTokenGroups(t, sidBytes))
+	users = append(
+		users,
+		testdirectory.NewUsers(
+			t,
+			[]string{"eve"},
+			testdirectory.WithDefaults(t, &testdirectory.Defaults{UPNDomain: "example.com"}),
+			testdirectory.WithMembersOf(t, "admin"))...,
+	)
+	ctrl, err := gldap.NewControlBeheraPasswordPolicy(gldap.WithGraceAuthNsRemaining(60))
+	require.NoError(err)
+	td.SetControls(ctrl)
+
+	td.SetUsers(users...)
+	td.SetGroups(groups...)
+	td.SetTokenGroups(tokenGroups)
+	td.SetAllowAnonymousBind(true)
+
+	assert.True(td.AllowAnonymousBind())
+	assert.Equal(groups, td.Groups())
+	assert.Equal(tokenGroups, td.TokenGroups())
+	assert.Equal(users, td.Users())
+	assert.Equal([]gldap.Control{ctrl}, td.Controls())
+
 }

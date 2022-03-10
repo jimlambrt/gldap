@@ -673,8 +673,8 @@ func (d *Directory) ClientKey() string {
 }
 
 // Controls returns all the current bind controls for the Directory
-func (d *Directory) Controls() []*gldap.Entry {
-	return d.users
+func (d *Directory) Controls() []gldap.Control {
+	return d.controls
 }
 
 // SetControls sets the bind controls.
