@@ -72,6 +72,5 @@ func Test_Logger(t *testing.T) {
 		assert.PanicsWithValue("testing.T failed, see logs for output (if any)", func() {
 			l.FailNow()
 		})
-
 	})
 }

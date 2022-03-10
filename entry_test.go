@@ -76,7 +76,8 @@ func TestEntry_PrettyPrint(t *testing.T) {
 			entry: &Entry{
 				DN: "uid=alice",
 				Attributes: []*EntryAttribute{
-					NewEntryAttribute("cn", []string{"alice"})},
+					NewEntryAttribute("cn", []string{"alice"}),
+				},
 			},
 			writer: new(strings.Builder),
 			want:   " DN: uid=alice\n   cn: [alice]\n",
@@ -86,7 +87,8 @@ func TestEntry_PrettyPrint(t *testing.T) {
 			entry: &Entry{
 				DN: "uid=alice",
 				Attributes: []*EntryAttribute{
-					NewEntryAttribute("cn", []string{"alice"})},
+					NewEntryAttribute("cn", []string{"alice"}),
+				},
 			},
 		},
 	}
