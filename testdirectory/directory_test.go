@@ -619,5 +619,4 @@ func TestGetters(t *testing.T) {
 	assert.Equal(tokenGroups, td.TokenGroups())
 	assert.Equal(users, td.Users())
 	assert.Equal([]gldap.Control{ctrl}, td.Controls())
-
 }
