@@ -43,6 +43,7 @@ const (
 	extendedRequestType requestType = "extended"
 	modifyRequestType   requestType = "modify"
 	addRequestType      requestType = "add"
+	deleteRequestType   requestType = "delete"
 )
 
 // Message defines a common interface for all messages
@@ -102,6 +103,16 @@ type ExtendedOperationMessage struct {
 	Name ExtendedOperationName
 	// Value of the extended operation
 	Value string
+}
+
+// DeleteMessage is an delete request message
+type DeleteMessage struct {
+	baseMessage
+	// DN identifies the entry being added
+	DN string
+
+	// Controls hold optional controls to send with the request
+	Controls []Control
 }
 
 // newMessage will create a new message from the packet.
@@ -188,6 +199,18 @@ func newMessage(p *packet) (Message, error) {
 			DN:         parameters.dn,
 			Attributes: parameters.attributes,
 			Controls:   parameters.controls,
+		}, nil
+	case deleteRequestType:
+		dn, controls, err := p.deleteParameters()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		return &DeleteMessage{
+			baseMessage: baseMessage{
+				id: msgID,
+			},
+			DN:       dn,
+			Controls: controls,
 		}, nil
 	default:
 		return &ExtendedOperationMessage{

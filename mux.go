@@ -132,6 +132,27 @@ func (m *Mux) Add(addFn HandlerFunc, opt ...Option) error {
 	return nil
 }
 
+// Delete will register a handler for delete operation requests.
+// Options supported: WithLabel
+func (m *Mux) Delete(modifyFn HandlerFunc, opt ...Option) error {
+	const op = "gldap.(Mux).Delete"
+	if modifyFn == nil {
+		return fmt.Errorf("%s: missing HandlerFunc: %w", op, ErrInvalidParameter)
+	}
+	opts := getRouteOpts(opt...)
+	r := &deleteRoute{
+		baseRoute: &baseRoute{
+			h:       modifyFn,
+			routeOp: deleteRouteOperation,
+			label:   opts.withLabel,
+		},
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.routes = append(m.routes, r)
+	return nil
+}
+
 // DefaultRoute will register a default handler requests which have no other
 // registered handler.
 func (m *Mux) DefaultRoute(noRouteFN HandlerFunc, opt ...Option) error {

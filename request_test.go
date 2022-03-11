@@ -188,6 +188,39 @@ func Test_newRequest(t *testing.T) {
 			wantErr:         true,
 			wantErrContains: "failed to decode attribute packet",
 		},
+		{
+			name:      "valid-delete",
+			requestID: 1,
+			conn:      &conn{},
+			packet: testDeleteRequestPacket(t,
+				DeleteMessage{
+					baseMessage: baseMessage{id: 1},
+					DN:          "uid=alice,ou=people,dc=example,dc=com",
+					Controls: []Control{
+						testControlString(t, "generic-control", WithControlValue("generic-value")),
+					},
+				},
+			),
+			wantMsg: &DeleteMessage{
+				baseMessage: baseMessage{id: 1},
+				DN:          "uid=alice,ou=people,dc=example,dc=com",
+				Controls: []Control{
+					testControlString(t, "generic-control", WithControlValue("generic-value")),
+				},
+			},
+		},
+		{
+			name:      "invalid-delete",
+			requestID: 1,
+			conn:      &conn{},
+			packet: func() *packet {
+				envelope := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
+				envelope.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, int64(1), "MessageID"))
+				return &packet{Packet: envelope}
+			}(),
+			wantErr:         true,
+			wantErrContains: "unable to build message for request",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -209,6 +242,47 @@ func Test_newRequest(t *testing.T) {
 			if tc.wantMsg != nil {
 				assert.Equal(tc.wantMsg, req.message)
 			}
+		})
+	}
+}
+
+func TestRequest_GetDeleteMessage(t *testing.T) {
+	tests := []struct {
+		name            string
+		r               *Request
+		wantErr         bool
+		wantErrIs       error
+		wantErrContains string
+	}{
+		{
+			name:            "invalid",
+			r:               &Request{},
+			wantErr:         true,
+			wantErrIs:       ErrInvalidParameter,
+			wantErrContains: "not a delete request",
+		},
+		{
+			name: "valid",
+			r:    &Request{message: &DeleteMessage{}},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			m, err := tc.r.GetDeleteMessage()
+			if tc.wantErr {
+				require.Error(err)
+				assert.Nil(m)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			assert.NotNil(m)
 		})
 	}
 }

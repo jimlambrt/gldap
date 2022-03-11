@@ -128,6 +128,7 @@ func Start(t TestingT, opt ...Option) *Directory {
 	mux.Search(d.handleSearchGeneric(t), gldap.WithLabel("Search - Generic"))
 	mux.Modify(d.handleModify(t), gldap.WithLabel("Modify"))
 	mux.Add(d.handleAdd(t), gldap.WithLabel("Add"))
+	mux.Delete(d.handleDelete(t), gldap.WithLabel("Delete"))
 
 	d.s.Router(mux)
 
@@ -409,7 +410,7 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 		d.logSearchRequest(m)
 
 		var foundEntries int
-		_, entries := find(d.t, m.Filter, d.users)
+		_, _, entries := find(d.t, m.Filter, d.users)
 		if len(entries) == 0 {
 			return
 		}
@@ -451,9 +452,9 @@ func (d *Directory) handleModify(t TestingT) func(w *gldap.ResponseWriter, r *gl
 		d.logger.Info("modify request", "dn", m.DN)
 
 		var entries []*gldap.Entry
-		_, entries = find(d.t, fmt.Sprintf("(%s)", m.DN), d.users)
+		_, _, entries = find(d.t, fmt.Sprintf("(%s)", m.DN), d.users)
 		if len(entries) == 0 {
-			_, entries = find(d.t, m.DN, d.groups)
+			_, _, entries = find(d.t, m.DN, d.groups)
 		}
 		if len(entries) == 0 {
 			return
@@ -520,7 +521,7 @@ func (d *Directory) handleAdd(t TestingT) func(w *gldap.ResponseWriter, r *gldap
 		}
 		d.logger.Info("add request", "dn", m.DN)
 
-		if found, _ := find(d.t, fmt.Sprintf("(%s)", m.DN), d.users); found {
+		if found, _, _ := find(d.t, fmt.Sprintf("(%s)", m.DN), d.users); found {
 			res.SetResultCode(gldap.ResultEntryAlreadyExists)
 			res.SetDiagnosticMessage(fmt.Sprintf("entry exists for DN: %s", m.DN))
 			return
@@ -534,6 +535,52 @@ func (d *Directory) handleAdd(t TestingT) func(w *gldap.ResponseWriter, r *gldap
 		defer d.mu.Unlock()
 		d.users = append(d.users, newEntry)
 		res.SetResultCode(gldap.ResultSuccess)
+	}
+}
+
+func (d *Directory) handleDelete(t TestingT) func(w *gldap.ResponseWriter, r *gldap.Request) {
+	const op = "testdirectory.(Directory).handleDelete"
+	if v, ok := interface{}(t).(HelperT); ok {
+		v.Helper()
+	}
+	return func(w *gldap.ResponseWriter, r *gldap.Request) {
+		d.logger.Debug(op)
+		res := r.NewResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject), gldap.WithApplicationCode(gldap.ApplicationDelResponse))
+		defer w.Write(res)
+		m, err := r.GetDeleteMessage()
+		if err != nil {
+			d.logger.Error("not a delete message: %s", "op", op, "err", err)
+			return
+		}
+		d.logger.Info("delete request", "dn", m.DN)
+
+		_, foundAt, _ := find(d.t, fmt.Sprintf("(%s)", m.DN), d.users)
+		if len(foundAt) > 0 {
+			if len(foundAt) > 1 {
+				res.SetResultCode(gldap.ResultInappropriateMatching)
+				res.SetDiagnosticMessage(fmt.Sprintf("more than one match: %d entries", len(foundAt)))
+				return
+			}
+			d.mu.Lock()
+			defer d.mu.Unlock()
+			d.users = append(d.users[:foundAt[0]], d.users[foundAt[0]+1:]...)
+			res.SetResultCode(gldap.ResultSuccess)
+			return
+		}
+		_, foundAt, _ = find(d.t, fmt.Sprintf("(%s)", m.DN), d.groups)
+		if len(foundAt) > 0 {
+			if len(foundAt) > 1 {
+				res.SetResultCode(gldap.ResultInappropriateMatching)
+				res.SetDiagnosticMessage(fmt.Sprintf("more than one match: %d entries", len(foundAt)))
+				return
+			}
+			d.mu.Lock()
+			defer d.mu.Unlock()
+			d.groups = append(d.groups[:foundAt[0]], d.groups[foundAt[0]+1:]...)
+			res.SetResultCode(gldap.ResultSuccess)
+			return
+		}
+		return
 	}
 }
 
@@ -557,21 +604,23 @@ func (d *Directory) findMembers(filter string, opt ...Option) (bool, []*gldap.En
 	return false, nil
 }
 
-func find(t TestingT, filter string, entries []*gldap.Entry, opt ...Option) (bool, []*gldap.Entry) {
+func find(t TestingT, filter string, entries []*gldap.Entry, opt ...Option) (bool, []int, []*gldap.Entry) {
 	opts := getOpts(t, opt...)
 	var matches []*gldap.Entry
-	for _, e := range entries {
+	var matchIndexes []int
+	for idx, e := range entries {
 		if ok, _ := match(filter, e.DN); ok {
 			matches = append(matches, e)
+			matchIndexes = append(matchIndexes, idx)
 			if opts.withFirst {
-				return true, matches
+				return true, []int{idx}, matches
 			}
 		}
 	}
 	if len(matches) > 0 {
-		return true, matches
+		return true, matchIndexes, matches
 	}
-	return false, nil
+	return false, nil, nil
 }
 
 func match(filter string, attr string) (bool, error) {

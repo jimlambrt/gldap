@@ -59,6 +59,8 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 		routeOp = modifyRouteOperation
 	case *AddMessage:
 		routeOp = addRouteOperation
+	case *DeleteMessage:
+		routeOp = deleteRouteOperation
 	default:
 		// this should be unreachable, since newMessage defaults to returning an
 		// *ExtendedOperationMessage
@@ -239,6 +241,17 @@ func (r *Request) GetAddMessage() (*AddMessage, error) {
 	m, ok := r.message.(*AddMessage)
 	if !ok {
 		return nil, fmt.Errorf("%s: %T not a add request: %w", op, r.message, ErrInvalidParameter)
+	}
+	return m, nil
+}
+
+// GetDeleteMessage retrieves the DeleteMessage from the request, which
+// allows you handle the request based on the message attributes.
+func (r *Request) GetDeleteMessage() (*DeleteMessage, error) {
+	const op = "gldap.(Request).GetDeleteMessage"
+	m, ok := r.message.(*DeleteMessage)
+	if !ok {
+		return nil, fmt.Errorf("%s: %T not a delete request: %w", op, r.message, ErrInvalidParameter)
 	}
 	return m, nil
 }

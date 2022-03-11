@@ -140,11 +140,11 @@ func searchHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 * Search Requests
 * Modify Requests
 * Add Requests
+* Delete Requests
 
 ### Near-term features 
 
 * Unbind Requests 
-* Delete Requests
   
 ### Long-term features
 
