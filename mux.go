@@ -111,17 +111,17 @@ func (m *Mux) Modify(modifyFn HandlerFunc, opt ...Option) error {
 	return nil
 }
 
-// Modify will register a handler for add operation requests.
+// Add will register a handler for add operation requests.
 // Options supported: WithLabel
-func (m *Mux) Add(modifyFn HandlerFunc, opt ...Option) error {
+func (m *Mux) Add(addFn HandlerFunc, opt ...Option) error {
 	const op = "gldap.(Mux).Add"
-	if modifyFn == nil {
+	if addFn == nil {
 		return fmt.Errorf("%s: missing HandlerFunc: %w", op, ErrInvalidParameter)
 	}
 	opts := getRouteOpts(opt...)
 	r := &addRoute{
 		baseRoute: &baseRoute{
-			h:       modifyFn,
+			h:       addFn,
 			routeOp: addRouteOperation,
 			label:   opts.withLabel,
 		},
