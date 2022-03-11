@@ -59,7 +59,7 @@ func (p *packet) requestMessageID() (int64, error) {
 // returns nil, nil if there's no control packet
 func (p *packet) controlPacket() (*packet, error) {
 	const (
-		op = "gldap.(packet).requestPacket"
+		op = "gldap.(packet).controlPacket"
 
 		childControl = 2
 	)

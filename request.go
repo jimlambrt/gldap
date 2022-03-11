@@ -110,7 +110,7 @@ func (r *Request) StartTLS(tlsconfig *tls.Config) error {
 // Supported options: WithResponseCode, WithApplicationCode,
 // WithDiagnosticMessage, WithMatchedDN
 func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
-	const op = "gldap.NewBindResponse"
+	const op = "gldap.NewResponse"
 	opts := getResponseOpts(opt...)
 	if opts.withResponseCode == nil {
 		opts.withResponseCode = intPtr(ResultUnwillingToPerform)
