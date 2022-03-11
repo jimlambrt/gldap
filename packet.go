@@ -84,8 +84,7 @@ func (p *packet) requestPacket() (*packet, error) {
 	if err := p.basicValidation(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	// assert there's a request type child
-	if err := p.assert(ber.ClassApplication, ber.TypeConstructed, withAssertChild(childApplicationRequest)); err != nil {
+	if err := p.assertApplicationRequest(); err != nil {
 		return nil, fmt.Errorf("%s: missing request child packet: %w", op, err)
 	}
 	requestPacket := &packet{Packet: p.Children[childApplicationRequest]}
@@ -128,6 +127,8 @@ func (p *packet) requestType() (requestType, error) {
 		return modifyRequestType, nil
 	case ApplicationAddRequest:
 		return addRequestType, nil
+	case ApplicationDelRequest:
+		return deleteRequestType, nil
 	default:
 		return unknownRequestType, fmt.Errorf("%s: unhandled request type %d: %w", op, requestPacket.Tag, ErrInternal)
 	}
@@ -521,6 +522,32 @@ func (p *packet) assert(cl ber.Class, ty ber.Type, opt ...Option) error {
 	return nil
 }
 
+func (p *packet) assertApplicationRequest() error {
+	const (
+		op = "gldap.(packet).assertApplicationRequest"
+
+		childApplicationRequest = 1
+	)
+	if len(p.Children) < childApplicationRequest+1 {
+		return fmt.Errorf("%s: missing asserted application request child, but there are only %d", op, len(p.Children))
+	}
+	chkPacket := p.Packet.Children[childApplicationRequest]
+
+	if chkPacket.ClassType != ber.ClassApplication {
+		return fmt.Errorf("%s: incorrect class, expected %v (ber.ClassApplication) but got %v", op, ber.ClassApplication, chkPacket.ClassType)
+	}
+	switch chkPacket.TagType {
+	case ber.TypePrimitive:
+		if chkPacket.Tag != ApplicationDelRequest {
+			return fmt.Errorf("%s: incorrect type, primitive %q must be a delete request %q, but got %q", op, ber.TypePrimitive, ApplicationDelRequest, chkPacket.Tag)
+		}
+	case ber.TypeConstructed:
+	default:
+		return fmt.Errorf("%s: incorrect type, expected ber.TypeConstructed %q but got %v", op, ber.TypeConstructed, chkPacket.TagType)
+	}
+	return nil
+}
+
 func (p *packet) debug() {
 	testLogger := hclog.New(&hclog.LoggerOptions{
 		Name:  "debug-logger",
@@ -564,6 +591,39 @@ func (p *packet) Log(out io.Writer, indent int, printBytes bool) {
 		childPacket := packet{Packet: child}
 		childPacket.Log(out, indent+1, printBytes)
 	}
+}
+
+func (p *packet) deleteParameters() (string, []Control, error) {
+	const (
+		op = "gldap.(packet).deleteDN"
+
+		childDN = 0
+	)
+	requestPacket, err := p.requestPacket()
+	if err != nil {
+		return "", nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if requestPacket.Packet.Tag != ApplicationDelRequest {
+		return "", nil, fmt.Errorf("%s: not a delete request, expected tag %d and got %d: %w", op, ApplicationDelRequest, requestPacket.Tag, ErrInvalidParameter)
+	}
+	dn := requestPacket.Data.String()
+
+	controlPacket, err := p.controlPacket()
+	if err != nil {
+		return "", nil, fmt.Errorf("%s: %w", op, err)
+	}
+	var controls []Control
+	if controlPacket != nil {
+		controls = make([]Control, 0, len(controlPacket.Children))
+		for _, c := range controlPacket.Children {
+			ctrl, err := decodeControl(c)
+			if err != nil {
+				return "", nil, fmt.Errorf("%s: %w", op, err)
+			}
+			controls = append(controls, ctrl)
+		}
+	}
+	return dn, controls, nil
 }
 
 var tagMap = map[ber.Tag]string{

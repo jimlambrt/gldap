@@ -546,3 +546,73 @@ func TestDirectory_AddResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestDirectory_DeleteResponse(t *testing.T) {
+	t.Parallel()
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  "TestDirectory_DeleteResponse-logger",
+		Level: hclog.Error,
+	})
+	td := testdirectory.Start(t,
+		testdirectory.WithLogger(t, testLogger),
+		testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}),
+	)
+	users := testdirectory.NewUsers(t, []string{"alice", "bob", "eve"})
+	groups := testdirectory.NewGroup(t, "admin", []string{"bob"})
+	td.SetUsers(users...)
+	td.SetGroups(groups)
+
+	const (
+		alice = 0
+		bob   = 1
+		eve   = 2
+	)
+
+	tests := []struct {
+		name            string
+		dn              string
+		attributes      []ldap.Attribute
+		wantErr         bool
+		wantErrContains string
+	}{
+		{
+			name:            "not-found",
+			dn:              fmt.Sprintf("%s=%s,%s", testdirectory.DefaultUserAttr, "joe", testdirectory.DefaultUserDN),
+			wantErr:         true,
+			wantErrContains: "No Such Object",
+		},
+		{
+			name: "success-user",
+			dn:   fmt.Sprintf("%s=%s,%s", testdirectory.DefaultUserAttr, "alice", testdirectory.DefaultUserDN),
+		},
+		{
+			name: "success-group",
+			dn:   fmt.Sprintf("%s=%s,%s", testdirectory.DefaultGroupAttr, "admin", testdirectory.DefaultGroupDN),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			client := td.Conn()
+			defer func() { client.Close() }()
+
+			err := client.Del(&ldap.DelRequest{
+				DN: tc.dn,
+			})
+			if tc.wantErr {
+				require.Error(err)
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			_, err = client.Search(&ldap.SearchRequest{
+				BaseDN: tc.dn,
+				Filter: fmt.Sprintf("(%s)", tc.dn),
+			})
+			require.Error(err)
+			assert.Contains(err.Error(), `LDAP Result Code 32 "No Such Object"`)
+		})
+	}
+}

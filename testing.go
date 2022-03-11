@@ -108,6 +108,21 @@ func testModifyRequestPacket(t *testing.T, m ModifyMessage) *packet {
 	}
 }
 
+func testDeleteRequestPacket(t *testing.T, m DeleteMessage) *packet {
+	t.Helper()
+	envelope := testRequestEnvelope(t, int(m.GetID()))
+	pkt := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationDelRequest, nil, "Delete Request")
+	pkt.Data.Write([]byte(m.DN))
+
+	envelope.AppendChild(pkt)
+	if len(m.Controls) > 0 {
+		envelope.AppendChild(encodeControls(m.Controls))
+	}
+	return &packet{
+		Packet: envelope,
+	}
+}
+
 func testAddRequestPacket(t *testing.T, m AddMessage) *packet {
 	t.Helper()
 	envelope := testRequestEnvelope(t, int(m.GetID()))

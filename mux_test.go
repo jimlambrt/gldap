@@ -105,3 +105,44 @@ func TestMux_serve(t *testing.T) {
 		assert.Contains(logBuf.String(), "missing request")
 	})
 }
+
+func TestMux_Delete(t *testing.T) {
+	tests := []struct {
+		name            string
+		mux             *Mux
+		fn              HandlerFunc
+		wantErr         bool
+		wantErrIs       error
+		wantErrContains string
+	}{
+		{
+			name:            "missing-fn",
+			mux:             func() *Mux { m, err := NewMux(); require.NoError(t, err); return m }(),
+			wantErr:         true,
+			wantErrIs:       ErrInvalidParameter,
+			wantErrContains: "missing HandlerFunc",
+		},
+		{
+			name: "valid",
+			mux:  func() *Mux { m, err := NewMux(); require.NoError(t, err); return m }(),
+			fn:   func(*ResponseWriter, *Request) {},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert, require := assert.New(t), require.New(t)
+			err := tc.mux.Delete(tc.fn)
+			if tc.wantErr {
+				require.Error(err)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+		})
+	}
+}
