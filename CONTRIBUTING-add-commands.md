@@ -12,7 +12,7 @@ gldap.
 
 
 - Add support for the new msg/request type for a `packet`
-  - Add support for the new request type in `packet.requestType(...)` 
+  - Add support for the new request type in `packet.requestType()` 
   - Define a new receiver func on `packet` that retrieves appropriate parameter
     data from the ber packet to build the msg type from the inbound packet. see
     `addParameters(..)`  as an example of how-to
@@ -25,12 +25,15 @@ gldap.
 
 
 - Support responses for the new msg/request type
-  - Define new response type (response.go).  See `BindResponse` as an example.
+  - Optionally define new response type (response.go).  See `BindResponse` as an
+    example.  This is optional because we may be able to reuse the
+    `GeneralResponse` for the new response... check before adding a new response
+    type. 
     - includes defining receiver funcs like `packet(...)` for the new response
       type. 
-  - Add support in `Request` (request.go) for the new response type
-    - Create a response from the inbound request.  See `NewBindResponse(...) `
-    - Get the new msg from the inbound `Request`.  See `GetModifyMessage()`
+    - Add support in `Request` (request.go) for the new response type
+      - Create a response from the inbound request.  See `NewBindResponse(...) `
+      - Get the new msg from the inbound `Request`.  See `GetModifyMessage()`
    
 
 - Support routing the new msg/request to a handler
@@ -47,6 +50,8 @@ gldap.
 - Required tests
   - e2e tests
   - testdirectory
+  - Test_newRequest
+    - add tests that use the new msg type (positive and negative tests)
 
 
 - Update README 
