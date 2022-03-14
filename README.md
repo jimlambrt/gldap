@@ -1,4 +1,5 @@
 # gldap
+![Coverage](https://img.shields.io/badge/Coverage-88.6%25-brightgreen)
 [![Go Reference](https://pkg.go.dev/badge/github.com/jimlambrt/gldap/gldap.svg)](https://pkg.go.dev/github.com/jimlambrt/gldap)
  
 
