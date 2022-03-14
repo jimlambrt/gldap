@@ -83,7 +83,7 @@ type SearchMessage struct {
 	Controls []Control
 }
 
-// SimpleBindMesssage is a simple bind request message
+// SimpleBindMessage is a simple bind request message
 type SimpleBindMessage struct {
 	baseMessage
 	// AuthChoice for the request (SimpleAuthChoice)

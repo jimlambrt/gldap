@@ -70,7 +70,7 @@ func (c *conn) serveRequests() error {
 
 	requestID := 0
 	for {
-		requestID += 1
+		requestID++
 		w, err := newResponseWriter(c.writer, &c.writerMu, c.logger, c.connID, requestID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)

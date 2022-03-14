@@ -44,6 +44,7 @@ func WithFilter(filter string) Option {
 	}
 }
 
+// WithScope specifies and optional scope to associate with a Search route
 func WithScope(s Scope) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*routeOptions); ok {

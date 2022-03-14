@@ -84,7 +84,7 @@ func (s *Server) Run(addr string, opt ...Option) error {
 
 	connID := 0
 	for {
-		connID += 1
+		connID++
 		select {
 		case <-s.shutdownCtx.Done():
 			return nil

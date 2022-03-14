@@ -197,6 +197,7 @@ func testControlPaging(t *testing.T, pagingSize uint32, opt ...Option) *ControlP
 	return c
 }
 
+// TestWithDebug specifies that the test should be run under "debug" mode
 func TestWithDebug(t *testing.T) bool {
 	t.Helper()
 	if strings.ToLower(os.Getenv("DEBUG")) == "true" {
