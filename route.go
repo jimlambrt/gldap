@@ -34,6 +34,7 @@ const (
 	defaultRouteOperation routeOperation = "noRoute"
 )
 
+// HandlerFunc defines a function for handling an LDAP request.
 type HandlerFunc func(*ResponseWriter, *Request)
 
 type route interface {

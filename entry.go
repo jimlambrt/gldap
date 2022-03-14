@@ -27,7 +27,7 @@ func (e *Entry) GetAttributeValues(attribute string) []string {
 	return []string{}
 }
 
-// TestEntry returns an Entry object with the specified distinguished name and attribute key-value pairs.
+// NewEntry returns an Entry object with the specified distinguished name and attribute key-value pairs.
 // The map of attributes is accessed in alphabetical order of the keys in order to ensure that, for the
 // same input map of attributes, the output entry will contain the same order of attributes
 func NewEntry(dn string, attributes map[string][]string) *Entry {
@@ -94,18 +94,18 @@ func NewEntryAttribute(name string, values []string) *EntryAttribute {
 }
 
 // AddValue to an existing EntryAttribute
-func (a *EntryAttribute) AddValue(value ...string) {
+func (e *EntryAttribute) AddValue(value ...string) {
 	for _, v := range value {
-		a.ByteValues = append(a.ByteValues, []byte(v))
-		a.Values = append(a.Values, v)
+		e.ByteValues = append(e.ByteValues, []byte(v))
+		e.Values = append(e.Values, v)
 	}
 }
 
-func (a *EntryAttribute) encode() *ber.Packet {
+func (e *EntryAttribute) encode() *ber.Packet {
 	seq := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Attribute")
-	seq.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, a.Name, "Type"))
+	seq.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, e.Name, "Type"))
 	set := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSet, nil, "AttributeValue")
-	for _, value := range a.Values {
+	for _, value := range e.Values {
 		set.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, value, "Vals"))
 	}
 	seq.AppendChild(set)

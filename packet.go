@@ -44,14 +44,14 @@ func (p *packet) requestMessageID() (int64, error) {
 	if err := p.basicValidation(); err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	msgIdPacket := &packet{Packet: p.Children[childMessageID]}
+	msgIDPacket := &packet{Packet: p.Children[childMessageID]}
 	// assert it's capable of holding the message ID
-	if err := msgIdPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagInteger)); err != nil {
+	if err := msgIDPacket.assert(ber.ClassUniversal, ber.TypePrimitive, withTag(ber.TagInteger)); err != nil {
 		return 0, fmt.Errorf("%s: missing/invalid packet: %w", op, err)
 	}
-	id, ok := msgIdPacket.Value.(int64)
+	id, ok := msgIDPacket.Value.(int64)
 	if !ok {
-		return 0, fmt.Errorf("%s: expected int64 message ID and got %t: %w", op, msgIdPacket.Value, ErrInvalidParameter)
+		return 0, fmt.Errorf("%s: expected int64 message ID and got %t: %w", op, msgIDPacket.Value, ErrInvalidParameter)
 	}
 	return id, nil
 }
@@ -505,9 +505,8 @@ func (p *packet) assert(cl ber.Class, ty ber.Type, opt ...Option) error {
 	if opts.withAssertChild != nil {
 		if len(p.Children) < *opts.withAssertChild+1 {
 			return fmt.Errorf("%s: missing asserted child %d, but there are only %d", op, *opts.withAssertChild, len(p.Children))
-		} else {
-			chkPacket = p.Packet.Children[*opts.withAssertChild]
 		}
+		chkPacket = p.Packet.Children[*opts.withAssertChild]
 	}
 
 	if chkPacket.ClassType != cl {
@@ -558,20 +557,20 @@ func (p *packet) debug() {
 
 // Log will pretty print log a packet
 func (p *packet) Log(out io.Writer, indent int, printBytes bool) {
-	indent_str := ""
+	indentStr := ""
 
-	for len(indent_str) != indent {
-		indent_str += " "
+	for len(indentStr) != indent {
+		indentStr += " "
 	}
 
-	class_str := ber.ClassMap[p.ClassType]
+	classStr := ber.ClassMap[p.ClassType]
 
-	tagtype_str := ber.TypeMap[p.TagType]
+	tagtypeStr := ber.TypeMap[p.TagType]
 
-	tag_str := fmt.Sprintf("0x%02X", p.Tag)
+	tagStr := fmt.Sprintf("0x%02X", p.Tag)
 
 	if p.ClassType == ber.ClassUniversal {
-		tag_str = tagMap[p.Tag]
+		tagStr = tagMap[p.Tag]
 	}
 
 	value := fmt.Sprint(p.Value)
@@ -581,10 +580,10 @@ func (p *packet) Log(out io.Writer, indent int, printBytes bool) {
 		description = p.Description + ": "
 	}
 
-	fmt.Fprintf(out, "%s%s(%s, %s, %s) Len=%d %q\n", indent_str, description, class_str, tagtype_str, tag_str, p.Data.Len(), value)
+	fmt.Fprintf(out, "%s%s(%s, %s, %s) Len=%d %q\n", indentStr, description, classStr, tagtypeStr, tagStr, p.Data.Len(), value)
 
 	if printBytes {
-		ber.PrintBytes(out, p.Bytes(), indent_str)
+		ber.PrintBytes(out, p.Bytes(), indentStr)
 	}
 
 	for _, child := range p.Children {
