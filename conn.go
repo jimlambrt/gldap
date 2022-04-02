@@ -111,7 +111,13 @@ func (c *conn) serveRequests() error {
 		// BusyResponse when the limit is reached.  This limit per conn
 		// should be configurable
 
-		// TODO: stop serving requests when an UnbindRequest is received
+		case r.routeOp == unbindRouteOperation:
+			// support an optional unbind route
+			if c.router.unbindRoute != nil {
+				c.router.unbindRoute.handler()(w, r)
+			}
+			// stop serving requests when UnbindRequest is received
+			return nil
 
 		// If it's a StartTLS request, then we can't dispatch it concurrently,
 		// since the conn needs to complete it's TLS negotiation before handling

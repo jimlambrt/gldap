@@ -129,6 +129,8 @@ func (p *packet) requestType() (requestType, error) {
 		return addRequestType, nil
 	case ApplicationDelRequest:
 		return deleteRequestType, nil
+	case ApplicationUnbindRequest:
+		return unbindRequestType, nil
 	default:
 		return unknownRequestType, fmt.Errorf("%s: unhandled request type %d: %w", op, requestPacket.Tag, ErrInternal)
 	}
@@ -537,8 +539,8 @@ func (p *packet) assertApplicationRequest() error {
 	}
 	switch chkPacket.TagType {
 	case ber.TypePrimitive:
-		if chkPacket.Tag != ApplicationDelRequest {
-			return fmt.Errorf("%s: incorrect type, primitive %q must be a delete request %q, but got %q", op, ber.TypePrimitive, ApplicationDelRequest, chkPacket.Tag)
+		if chkPacket.Tag != ApplicationDelRequest && chkPacket.Tag != ApplicationUnbindRequest {
+			return fmt.Errorf("%s: incorrect type, primitive %q must be a delete request %q or an unbind request %q, but got %q", op, ber.TypePrimitive, ApplicationDelRequest, ApplicationUnbindRequest, chkPacket.Tag)
 		}
 	case ber.TypeConstructed:
 	default:

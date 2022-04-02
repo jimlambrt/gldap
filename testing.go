@@ -88,6 +88,18 @@ func testSimpleBindRequestPacket(t *testing.T, m SimpleBindMessage) *packet {
 	}
 }
 
+func testUnbindRequestPacket(t *testing.T, m UnbindMessage) *packet {
+	t.Helper()
+
+	envelope := testRequestEnvelope(t, int(m.GetID()))
+	pkt := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationUnbindRequest, nil, "Unbind Request")
+	envelope.AppendChild(pkt)
+
+	return &packet{
+		Packet: envelope,
+	}
+}
+
 func testModifyRequestPacket(t *testing.T, m ModifyMessage) *packet {
 	t.Helper()
 	envelope := testRequestEnvelope(t, int(m.GetID()))

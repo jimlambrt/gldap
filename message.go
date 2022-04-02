@@ -44,6 +44,7 @@ const (
 	modifyRequestType   requestType = "modify"
 	addRequestType      requestType = "add"
 	deleteRequestType   requestType = "delete"
+	unbindRequestType   requestType = "unbind"
 )
 
 // Message defines a common interface for all messages
@@ -115,6 +116,11 @@ type DeleteMessage struct {
 	Controls []Control
 }
 
+// UnbindMessage is an unbind request message
+type UnbindMessage struct {
+	baseMessage
+}
+
 // newMessage will create a new message from the packet.
 func newMessage(p *packet) (Message, error) {
 	const op = "gldap.NewMessage"
@@ -130,6 +136,12 @@ func newMessage(p *packet) (Message, error) {
 	}
 
 	switch reqType {
+	case unbindRequestType:
+		return &UnbindMessage{
+			baseMessage: baseMessage{
+				id: msgID,
+			},
+		}, nil
 	case bindRequestType:
 		u, pass, controls, err := p.simpleBindParameters()
 		if err != nil {

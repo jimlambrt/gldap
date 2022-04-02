@@ -29,6 +29,9 @@ const (
 	// deleteRouteOperation is a route supporting the delete operation
 	deleteRouteOperation routeOperation = "delete"
 
+	// unbindRouteOperation is a route supporting the unbind operation
+	unbindRouteOperation routeOperation = "unbind"
+
 	// defaultRouteOperation is a default route which is used when there are no routes
 	// defined for a particular operation
 	defaultRouteOperation routeOperation = "noRoute"
@@ -71,6 +74,10 @@ type searchRoute struct {
 type simpleBindRoute struct {
 	*baseRoute
 	authChoice AuthChoice
+}
+
+type unbindRoute struct {
+	*baseRoute
 }
 
 type extendedRoute struct {
