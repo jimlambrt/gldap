@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/go-ldap/ldap/v3"
@@ -615,4 +616,64 @@ func TestDirectory_DeleteResponse(t *testing.T) {
 			assert.Contains(err.Error(), `LDAP Result Code 32 "No Such Object"`)
 		})
 	}
+}
+
+func Test_Start_Unbind(t *testing.T) {
+	t.Parallel()
+	t.Run("unbind", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+		port := testdirectory.FreePort(t)
+
+		l := hclog.New(&hclog.LoggerOptions{
+			Name:  "simple-bind-logger",
+			Level: hclog.Error,
+		})
+
+		// create a new server
+		s, err := gldap.NewServer(gldap.WithLogger(l), gldap.WithDisablePanicRecovery())
+		require.NoError(err)
+
+		// create a router and add a bind handler
+		r, err := gldap.NewMux()
+		require.NoError(err)
+
+		var got string
+		var wg sync.WaitGroup
+		wg.Add(1)
+		r.Unbind(func(w *gldap.ResponseWriter, req *gldap.Request) {
+			m, err := req.GetUnbindMessage()
+			if err != nil {
+				t.Fatalf("unable to get unbind msg: %s", err.Error())
+			}
+			if m == nil {
+				t.Fatal("unbind msg is nil")
+			}
+			got = "unbind-success"
+			wg.Done()
+		})
+
+		r.Bind(func(w *gldap.ResponseWriter, r *gldap.Request) {
+			resp := r.NewBindResponse(gldap.WithResponseCode(gldap.ResultSuccess))
+			defer func() {
+				_ = w.Write(resp)
+			}()
+		})
+
+		s.Router(r)
+		go s.Run(fmt.Sprintf(":%d", port))
+		defer s.Stop()
+
+		conn, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", port))
+		require.NoError(err)
+		defer conn.Close()
+
+		err = conn.Bind("does not", "matter")
+		require.NoError(err)
+
+		err = conn.Unbind()
+		require.NoError(err)
+
+		wg.Wait()
+		assert.Equal("unbind-success", got)
+	})
 }

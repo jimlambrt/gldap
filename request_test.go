@@ -74,6 +74,19 @@ func Test_newRequest(t *testing.T) {
 			},
 		},
 		{
+			name:      "valid-unbind",
+			requestID: 1,
+			conn:      &conn{},
+			packet: testUnbindRequestPacket(t,
+				UnbindMessage{
+					baseMessage: baseMessage{id: 1},
+				},
+			),
+			wantMsg: &UnbindMessage{
+				baseMessage: baseMessage{id: 1},
+			},
+		},
+		{
 			name:      "valid-search",
 			requestID: 1,
 			conn:      &conn{},

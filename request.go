@@ -61,6 +61,8 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 		routeOp = addRouteOperation
 	case *DeleteMessage:
 		routeOp = deleteRouteOperation
+	case *UnbindMessage:
+		routeOp = unbindRouteOperation
 	default:
 		// this should be unreachable, since newMessage defaults to returning an
 		// *ExtendedOperationMessage
@@ -252,6 +254,17 @@ func (r *Request) GetDeleteMessage() (*DeleteMessage, error) {
 	m, ok := r.message.(*DeleteMessage)
 	if !ok {
 		return nil, fmt.Errorf("%s: %T not a delete request: %w", op, r.message, ErrInvalidParameter)
+	}
+	return m, nil
+}
+
+// GetUnbindMessage retrieves the UnbindMessage from the request, which
+// allows you handle the request based on the message attributes.
+func (r *Request) GetUnbindMessage() (*UnbindMessage, error) {
+	const op = "gldap.(Request).GetUnbindMessage"
+	m, ok := r.message.(*UnbindMessage)
+	if !ok {
+		return nil, fmt.Errorf("%s: %T not an unbind request: %w", op, r.message, ErrInvalidParameter)
 	}
 	return m, nil
 }

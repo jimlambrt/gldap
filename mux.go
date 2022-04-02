@@ -12,6 +12,7 @@ type Mux struct {
 	mu           sync.Mutex
 	routes       []route
 	defaultRoute route
+	unbindRoute  route
 }
 
 // NewMux creates a new multiplexer.
@@ -41,6 +42,31 @@ func (m *Mux) Bind(bindFn HandlerFunc, opt ...Option) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.routes = append(m.routes, r)
+	return nil
+}
+
+// Unbind will register a handler for unbind requests and override the default
+// unbind handler.  Registering an unbind handler is optional and regardless of
+// whether or not an unbind route is defined the server will stop serving
+// requests for a connection after an unbind request is received.  Options
+// supported: WithLabel
+func (m *Mux) Unbind(bindFn HandlerFunc, opt ...Option) error {
+	const op = "gldap.(Mux).Unbind"
+	if bindFn == nil {
+		return fmt.Errorf("%s: missing HandlerFunc: %w", op, ErrInvalidParameter)
+	}
+	opts := getRouteOpts(opt...)
+
+	r := &unbindRoute{
+		baseRoute: &baseRoute{
+			h:       bindFn,
+			routeOp: bindRouteOperation,
+			label:   opts.withLabel,
+		},
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.unbindRoute = r
 	return nil
 }
 
