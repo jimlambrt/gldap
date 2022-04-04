@@ -3,9 +3,6 @@
 ![Coverage](https://img.shields.io/badge/Coverage-88.6%25-brightgreen)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jimlambrt/gldap)](https://goreportcard.com/report/github.com/jimlambrt/gldap)
 
-
-**This is a work in progress! I would only suggest using it for development and test.**
-
 <hr>
 
 `gldap` is a framework for building LDAP services.  Among other things, it defines abstractions for:
