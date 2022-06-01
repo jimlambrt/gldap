@@ -299,3 +299,19 @@ func TestRequest_GetDeleteMessage(t *testing.T) {
 		})
 	}
 }
+
+func TestRequest_GetConnectionID(t *testing.T) {
+	t.Parallel()
+	assert, require := assert.New(t), require.New(t)
+	const (
+		requestID = 1
+		connID    = 2
+	)
+	conn := &conn{connID: connID}
+	packet := testSearchRequestPacket(t,
+		SearchMessage{baseMessage: baseMessage{id: 1}, Filter: "(uid=alice)"},
+	)
+	req, err := newRequest(requestID, conn, packet)
+	require.NoError(err)
+	assert.Equal(connID, req.ConnectionID())
+}
