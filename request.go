@@ -79,6 +79,14 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 	return r, nil
 }
 
+// ConnectionID returns the request's connection ID which enables you to know
+// "who" (i.e. which connection) made a request. Using the connection ID you
+// can do things like ensure a connection performing a search operation has
+// successfully authenticated (a.k.a. performed a successful bind operation).
+func (r *Request) ConnectionID() int {
+	return r.conn.connID
+}
+
 // NewModifyResponse creates a modify response
 // Supported options: WithResponseCode, WithDiagnosticMessage, WithMatchedDN
 func (r *Request) NewModifyResponse(opt ...Option) *ModifyResponse {
