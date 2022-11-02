@@ -17,7 +17,7 @@ import (
 
 // conn is a connection to an ldap client
 type conn struct {
-	mu sync.Mutex // mutext for the conn
+	mu sync.Mutex // mutex for the conn
 
 	connID      int
 	netConn     net.Conn
