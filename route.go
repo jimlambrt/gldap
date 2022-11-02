@@ -9,7 +9,7 @@ type routeOperation string
 
 const (
 	// undefinedRouteOperation is an undefined operation.
-	undefinedRouteOperation routeOperation = ""
+	undefinedRouteOperation routeOperation = "" // nolint:unused
 
 	// bindRouteOperation is a route supporting the bind operation
 	bindRouteOperation routeOperation = "bind"
@@ -34,7 +34,7 @@ const (
 
 	// defaultRouteOperation is a default route which is used when there are no routes
 	// defined for a particular operation
-	defaultRouteOperation routeOperation = "noRoute"
+	defaultRouteOperation routeOperation = "noRoute" // nolint:unused
 )
 
 // HandlerFunc defines a function for handling an LDAP request.
@@ -162,10 +162,7 @@ func (r *extendedRoute) match(req *Request) bool {
 		return false
 	}
 	_, ok := req.message.(*ExtendedOperationMessage)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }
 
 func (r *searchRoute) match(req *Request) bool {
@@ -179,10 +176,10 @@ func (r *searchRoute) match(req *Request) bool {
 	if !ok {
 		return false
 	}
-	if r.basedn != "" && strings.ToLower(searchMsg.BaseDN) != strings.ToLower(r.basedn) {
+	if r.basedn != "" && !strings.EqualFold(searchMsg.BaseDN, r.basedn) {
 		return false
 	}
-	if r.filter != "" && strings.ToLower(searchMsg.Filter) != strings.ToLower(r.filter) {
+	if r.filter != "" && !strings.EqualFold(searchMsg.Filter, r.filter) {
 		return false
 	}
 	if r.scope != 0 && searchMsg.Scope != r.scope {

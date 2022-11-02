@@ -1,7 +1,6 @@
 package gldap
 
 import (
-	"io"
 	"strings"
 	"testing"
 
@@ -39,8 +38,7 @@ func Test_getGeneralOpts(t *testing.T) {
 }
 
 func Test_isNil(t *testing.T) {
-	var testWriter io.Writer
-	testWriter = new(strings.Builder)
+	testWriter := new(strings.Builder)
 	tests := []struct {
 		name string
 		i    interface{}

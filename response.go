@@ -69,14 +69,14 @@ func (rw *ResponseWriter) Write(r Response) error {
 }
 
 func beginResponse(messageID int64) *ber.Packet {
-	const op = "gldap.beginResponse"
+	const op = "gldap.beginResponse" // nolint:unused
 	p := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Response")
 	p.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, messageID, "MessageID"))
 	return p
 }
 
 func addOptionalResponseChildren(bindResponse *ber.Packet, opt ...Option) {
-	const op = "gldap.addOptionalResponseChildren"
+	const op = "gldap.addOptionalResponseChildren" // nolint:unused
 	opts := getResponseOpts(opt...)
 	bindResponse.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, opts.withMatchedDN, "matchedDN"))
 	bindResponse.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, opts.withDiagnosticMessage, "diagnosticMessage"))
@@ -172,7 +172,7 @@ type GeneralResponse struct {
 }
 
 func (r *GeneralResponse) packet() *packet {
-	const op = "gldap.(GeneralResponse).packet"
+	const op = "gldap.(GeneralResponse).packet" // nolint:unused
 	replyPacket := beginResponse(r.messageID)
 
 	// a new packet for the bind response
@@ -199,7 +199,7 @@ func (r *SearchResponseDone) SetControls(controls ...Control) {
 }
 
 func (r *SearchResponseDone) packet() *packet {
-	const op = "gldap.(SearchDoneResponse).packet"
+	const op = "gldap.(SearchDoneResponse).packet" // nolint:unused
 	replyPacket := beginResponse(r.messageID)
 
 	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationSearchResultDone, nil, ApplicationCodeMap[ApplicationSearchResultDone])
@@ -227,7 +227,7 @@ func (r *SearchResponseEntry) AddAttribute(name string, values []string) {
 }
 
 func (r *SearchResponseEntry) packet() *packet {
-	const op = "gldap.(SearchEntryResponse).packet"
+	const op = "gldap.(SearchEntryResponse).packet" // nolint:unused
 	replyPacket := beginResponse(r.messageID)
 
 	resultPacket := ber.Encode(ber.ClassApplication, ber.TypeConstructed, ApplicationSearchResultEntry, nil, ApplicationCodeMap[ApplicationSearchResultEntry])

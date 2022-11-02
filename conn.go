@@ -93,7 +93,9 @@ func (c *conn) serveRequests() error {
 			if err := w.Write(resp); err != nil {
 				return fmt.Errorf("%s: %w", op, err)
 			}
-			c.netConn.SetReadDeadline(time.Now().Add(time.Millisecond))
+			if err := c.netConn.SetReadDeadline(time.Now().Add(time.Millisecond)); err != nil {
+				return fmt.Errorf("%s: %w", op, err)
+			}
 			return nil
 		default:
 			// need a default to fall through to rest of loop...
@@ -200,6 +202,8 @@ func (c *conn) initConn(netConn net.Conn) error {
 func (c *conn) close() error {
 	const op = "gldap.(Conn).close"
 	c.requestsWg.Wait()
-	c.netConn.Close()
+	if err := c.netConn.Close(); err != nil {
+		return fmt.Errorf("%s: error closing conn: %w", op, err)
+	}
 	return nil
 }

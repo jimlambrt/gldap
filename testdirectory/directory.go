@@ -44,28 +44,26 @@ const (
 // Once you started a Directory with Start(...), the following
 // test ldap operations are supported:
 //
-//  * Bind
-//  * StartTLS
-//  * Search
-//  * Modify
-//  * Add
+//   - Bind
+//   - StartTLS
+//   - Search
+//   - Modify
+//   - Add
 //
 // Making requests to the Directory is facilitated by:
-//  * Directory.Conn()		returns a *ldap.Conn connected to the Directory (honors WithMTLS options from start)
-//  * Directory.Cert() 		returns the pem-encoded CA certificate used by the directory.
-//  * Directory.Port() 		returns the port the directory is listening on.
-//  * Directory.ClientCert() 	returns a client cert for mtls
-//  * Directory.ClientKey() 	returns a client private key for mtls
-//
+//   - Directory.Conn()		returns a *ldap.Conn connected to the Directory (honors WithMTLS options from start)
+//   - Directory.Cert() 		returns the pem-encoded CA certificate used by the directory.
+//   - Directory.Port() 		returns the port the directory is listening on.
+//   - Directory.ClientCert() 	returns a client cert for mtls
+//   - Directory.ClientKey() 	returns a client private key for mtls
 type Directory struct {
-	t       TestingT
-	s       *gldap.Server
-	logger  hclog.Logger
-	port    int
-	useTLS  bool
-	useMTLS bool
-	client  *tls.Config
-	server  *tls.Config
+	t      TestingT
+	s      *gldap.Server
+	logger hclog.Logger
+	port   int
+	useTLS bool
+	client *tls.Config
+	server *tls.Config
 
 	mu                 sync.Mutex
 	users              []*gldap.Entry
@@ -120,17 +118,17 @@ func Start(t TestingT, opt ...Option) *Directory {
 
 	mux, err := gldap.NewMux()
 	require.NoError(err)
-	mux.DefaultRoute(d.handleNotFound(t))
-	mux.Bind(d.handleBind(t))
-	mux.ExtendedOperation(d.handleStartTLS(t), gldap.ExtendedOperationStartTLS)
-	mux.Search(d.handleSearchUsers(t), gldap.WithBaseDN(d.userDN), gldap.WithLabel("Search - Users"))
-	mux.Search(d.handleSearchGroups(t), gldap.WithBaseDN(d.groupDN), gldap.WithLabel("Search - Groups"))
-	mux.Search(d.handleSearchGeneric(t), gldap.WithLabel("Search - Generic"))
-	mux.Modify(d.handleModify(t), gldap.WithLabel("Modify"))
-	mux.Add(d.handleAdd(t), gldap.WithLabel("Add"))
-	mux.Delete(d.handleDelete(t), gldap.WithLabel("Delete"))
+	require.NoError(mux.DefaultRoute(d.handleNotFound(t)))
+	require.NoError(mux.Bind(d.handleBind(t)))
+	require.NoError(mux.ExtendedOperation(d.handleStartTLS(t), gldap.ExtendedOperationStartTLS))
+	require.NoError(mux.Search(d.handleSearchUsers(t), gldap.WithBaseDN(d.userDN), gldap.WithLabel("Search - Users")))
+	require.NoError(mux.Search(d.handleSearchGroups(t), gldap.WithBaseDN(d.groupDN), gldap.WithLabel("Search - Groups")))
+	require.NoError(mux.Search(d.handleSearchGeneric(t), gldap.WithLabel("Search - Generic")))
+	require.NoError(mux.Modify(d.handleModify(t), gldap.WithLabel("Modify")))
+	require.NoError(mux.Add(d.handleAdd(t), gldap.WithLabel("Add")))
+	require.NoError(mux.Delete(d.handleDelete(t), gldap.WithLabel("Delete")))
 
-	d.s.Router(mux)
+	require.NoError(d.s.Router(mux))
 
 	serverTLSConfig, clientTLSConfig := GetTLSConfig(t, opt...)
 	d.client = clientTLSConfig
@@ -153,7 +151,7 @@ func Start(t TestingT, opt ...Option) *Directory {
 	}()
 
 	if v, ok := interface{}(t).(CleanupT); ok {
-		v.Cleanup(func() { d.s.Stop() })
+		v.Cleanup(func() { _ = d.s.Stop() })
 	}
 	// need a bit of a pause to get the service up and running, otherwise we'll
 	// get a connection error because the service isn't listening yet.
@@ -169,8 +167,13 @@ func Start(t TestingT, opt ...Option) *Directory {
 // Stop will stop the Directory if it wasn't started with a *testing.T
 // if it was started with *testing.T then Stop() is ignored.
 func (d *Directory) Stop() {
+	const op = "testdirectory.(Directory).Stop"
 	if _, ok := interface{}(d.t).(CleanupT); !ok {
-		d.s.Stop()
+		err := d.s.Stop()
+		if err != nil {
+			d.logger.Error("error stopping directory: %s", "op", op, "err", err)
+			return
+		}
 	}
 }
 
@@ -218,7 +221,7 @@ func (d *Directory) handleBind(t TestingT) func(w *gldap.ResponseWriter, r *glda
 			}
 		}
 		// bind failed...
-		return
+		return //nolint:gosimple // (ignore redundant return)
 	}
 }
 
@@ -231,7 +234,7 @@ func (d *Directory) handleNotFound(t TestingT) func(w *gldap.ResponseWriter, r *
 		d.logger.Debug(op)
 		resp := r.NewResponse(gldap.WithDiagnosticMessage("intentionally not handled"))
 		_ = w.Write(resp)
-		return
+		return //nolint:gosimple // (ignore redundant return)
 	}
 }
 
@@ -244,12 +247,20 @@ func (d *Directory) handleStartTLS(t TestingT) func(w *gldap.ResponseWriter, r *
 		d.logger.Debug(op)
 		res := r.NewExtendedResponse(gldap.WithResponseCode(gldap.ResultSuccess))
 		res.SetResponseName(gldap.ExtendedOperationStartTLS)
-		w.Write(res)
+		err := w.Write(res)
+		if err != nil {
+			d.logger.Error("error writing response: %s", "op", op, "err", err)
+			return
+		}
 		if err := r.StartTLS(d.server); err != nil {
 			d.logger.Error("StartTLS Handshake error", "op", op, "err", err)
 			res.SetDiagnosticMessage(fmt.Sprintf("StartTLS Handshake error : \"%s\"", err.Error()))
 			res.SetResultCode(gldap.ResultOperationsError)
-			w.Write(res)
+			err := w.Write(res)
+			if err != nil {
+				d.logger.Error("error writing response: %s", "op", op, "err", err)
+				return
+			}
 			return
 		}
 		d.logger.Debug("StartTLS OK", "op", op)
@@ -264,7 +275,13 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
 		res := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
-		defer w.Write(res)
+		defer func() {
+			err := w.Write(res)
+			if err != nil {
+				d.logger.Error("error writing response: %s", "op", op, "err", err)
+				return
+			}
+		}()
 		m, err := r.GetSearchMessage()
 		if err != nil {
 			d.logger.Error("not a search message: %s", "op", op, "err", err)
@@ -301,7 +318,11 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 					result.AddAttribute(attr.Name, attr.Values)
 				}
 				foundEntries += 1
-				w.Write(result)
+				err = w.Write(result)
+				if err != nil {
+					d.logger.Error("error writing result: %s", "op", op, "err", err)
+					return
+				}
 			}
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
 			res.SetResultCode(gldap.ResultSuccess)
@@ -318,7 +339,11 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 				result.AddAttribute(attr.Name, attr.Values)
 			}
 			foundEntries += 1
-			w.Write(result)
+			err := w.Write(result)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
 		}
 		for _, e := range d.groups {
 			if ok, _ := match(filter, e.DN); !ok {
@@ -329,7 +354,11 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 				result.AddAttribute(attr.Name, attr.Values)
 			}
 			foundEntries += 1
-			w.Write(result)
+			err = w.Write(result)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
 		}
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
@@ -351,7 +380,13 @@ func (d *Directory) handleSearchGroups(t TestingT) func(w *gldap.ResponseWriter,
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
 		res := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
-		defer w.Write(res)
+		defer func() {
+			err := w.Write(res)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
+		}()
 		m, err := r.GetSearchMessage()
 		if err != nil {
 			d.logger.Error("not a search message: %s", "op", op, "err", err)
@@ -367,7 +402,11 @@ func (d *Directory) handleSearchGroups(t TestingT) func(w *gldap.ResponseWriter,
 				result.AddAttribute(attr.Name, attr.Values)
 			}
 			foundEntries += 1
-			w.Write(result)
+			err := w.Write(result)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
 		}
 		for _, e := range d.groups {
 			if ok, _ := match(m.Filter, e.DN); !ok {
@@ -378,7 +417,11 @@ func (d *Directory) handleSearchGroups(t TestingT) func(w *gldap.ResponseWriter,
 				result.AddAttribute(attr.Name, attr.Values)
 			}
 			foundEntries += 1
-			w.Write(result)
+			err = w.Write(result)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
 		}
 
 		if foundEntries > 0 {
@@ -401,7 +444,13 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
 		res := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
-		defer w.Write(res)
+		defer func() {
+			err := w.Write(res)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
+		}()
 		m, err := r.GetSearchMessage()
 		if err != nil {
 			d.logger.Error("not a search message: %s", "op", op, "err", err)
@@ -420,7 +469,11 @@ func (d *Directory) handleSearchUsers(t TestingT) func(w *gldap.ResponseWriter, 
 				result.AddAttribute(attr.Name, attr.Values)
 			}
 			foundEntries += 1
-			w.Write(result)
+			err := w.Write(result)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
 		}
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
@@ -443,7 +496,13 @@ func (d *Directory) handleModify(t TestingT) func(w *gldap.ResponseWriter, r *gl
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
 		res := r.NewModifyResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
-		defer w.Write(res)
+		defer func() {
+			err := w.Write(res)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
+		}()
 		m, err := r.GetModifyMessage()
 		if err != nil {
 			d.logger.Error("not a modify message: %s", "op", op, "err", err)
@@ -497,6 +556,9 @@ func (d *Directory) handleModify(t TestingT) func(w *gldap.ResponseWriter, r *gl
 				}
 			case gldap.ReplaceAttribute:
 				if foundAttr != nil {
+					// we're updating what the ptr points at, so disable lint of
+					// unused var
+					//nolint:staticcheck
 					foundAttr = gldap.NewEntryAttribute(chg.Modification.Type, chg.Modification.Vals)
 				}
 			}
@@ -513,7 +575,13 @@ func (d *Directory) handleAdd(t TestingT) func(w *gldap.ResponseWriter, r *gldap
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
 		res := r.NewResponse(gldap.WithApplicationCode(gldap.ApplicationAddResponse), gldap.WithResponseCode(gldap.ResultOperationsError))
-		defer w.Write(res)
+		defer func() {
+			err := w.Write(res)
+			if err != nil {
+				d.logger.Error("error writing result: %s", "op", op, "err", err)
+				return
+			}
+		}()
 		m, err := r.GetAddMessage()
 		if err != nil {
 			d.logger.Error("not an add message: %s", "op", op, "err", err)
@@ -546,7 +614,13 @@ func (d *Directory) handleDelete(t TestingT) func(w *gldap.ResponseWriter, r *gl
 	return func(w *gldap.ResponseWriter, r *gldap.Request) {
 		d.logger.Debug(op)
 		res := r.NewResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject), gldap.WithApplicationCode(gldap.ApplicationDelResponse))
-		defer w.Write(res)
+		defer func() {
+			err := w.Write(res)
+			if err != nil {
+				d.logger.Error("error writing response: %s", "op", op, "err", err)
+				return
+			}
+		}()
 		m, err := r.GetDeleteMessage()
 		if err != nil {
 			d.logger.Error("not a delete message: %s", "op", op, "err", err)
@@ -580,7 +654,7 @@ func (d *Directory) handleDelete(t TestingT) func(w *gldap.ResponseWriter, r *gl
 			res.SetResultCode(gldap.ResultSuccess)
 			return
 		}
-		return
+		return //nolint:gosimple // (ignore redundant return)
 	}
 }
 

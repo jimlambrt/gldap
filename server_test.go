@@ -84,7 +84,8 @@ func TestServer_Run(t *testing.T) {
 			port := testdirectory.FreePort(t)
 
 			go func() {
-				s.Run(fmt.Sprintf(":%d", port), tc.runOpts...)
+				err = s.Run(fmt.Sprintf(":%d", port), tc.runOpts...)
+				assert.NoError(err)
 			}()
 			t.Cleanup(func() { err := s.Stop(); assert.NoError(err) })
 			for {

@@ -563,12 +563,6 @@ func TestDirectory_DeleteResponse(t *testing.T) {
 	td.SetUsers(users...)
 	td.SetGroups(groups)
 
-	const (
-		alice = 0
-		bob   = 1
-		eve   = 2
-	)
-
 	tests := []struct {
 		name            string
 		dn              string
@@ -640,7 +634,7 @@ func Test_Start_Unbind(t *testing.T) {
 		var got string
 		var wg sync.WaitGroup
 		wg.Add(1)
-		r.Unbind(func(w *gldap.ResponseWriter, req *gldap.Request) {
+		err = r.Unbind(func(w *gldap.ResponseWriter, req *gldap.Request) {
 			m, err := req.GetUnbindMessage()
 			if err != nil {
 				t.Fatalf("unable to get unbind msg: %s", err.Error())
@@ -651,17 +645,20 @@ func Test_Start_Unbind(t *testing.T) {
 			got = "unbind-success"
 			wg.Done()
 		})
+		require.NoError(err)
 
-		r.Bind(func(w *gldap.ResponseWriter, r *gldap.Request) {
+		err = r.Bind(func(w *gldap.ResponseWriter, r *gldap.Request) {
 			resp := r.NewBindResponse(gldap.WithResponseCode(gldap.ResultSuccess))
 			defer func() {
 				_ = w.Write(resp)
 			}()
 		})
+		require.NoError(err)
 
-		s.Router(r)
-		go s.Run(fmt.Sprintf(":%d", port))
-		defer s.Stop()
+		err = s.Router(r)
+		require.NoError(err)
+		go func() { require.NoError(s.Run(fmt.Sprintf(":%d", port))) }()
+		defer func() { require.NoError(s.Stop()) }()
 
 		conn, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", port))
 		require.NoError(err)

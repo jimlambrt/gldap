@@ -595,11 +595,8 @@ func (p *packet) Log(out io.Writer, indent int, printBytes bool) {
 }
 
 func (p *packet) deleteParameters() (string, []Control, error) {
-	const (
-		op = "gldap.(packet).deleteDN"
+	const op = "gldap.(packet).deleteDN"
 
-		childDN = 0
-	)
 	requestPacket, err := p.requestPacket()
 	if err != nil {
 		return "", nil, fmt.Errorf("%s: %w", op, err)
