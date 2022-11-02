@@ -13,6 +13,7 @@ type configOptions struct {
 	withReadTimeout          time.Duration
 	withWriteTimeout         time.Duration
 	withDisablePanicRecovery bool
+	withOnClose              OnCloseHandler
 }
 
 func configDefaults() configOptions {
@@ -71,6 +72,22 @@ func WithDisablePanicRecovery() Option {
 	return func(o interface{}) {
 		if o, ok := o.(*configOptions); ok {
 			o.withDisablePanicRecovery = true
+		}
+	}
+}
+
+// OnCloseHandler defines a function for a "on close" callback handler.  See:
+// NewServer(...) and WithOnClose(...) option for more information
+type OnCloseHandler func(connectionID int)
+
+// WithOnClose defines a OnCloseHandler that the server will use as a callback
+// every time a connection to the server is closed.   This allows callers to
+// clean up resources for closed connections (using their ID to determine which
+// one to clean up)
+func WithOnClose(handler OnCloseHandler) Option {
+	return func(o interface{}) {
+		if o, ok := o.(*configOptions); ok {
+			o.withOnClose = handler
 		}
 	}
 }

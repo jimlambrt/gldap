@@ -2,6 +2,8 @@ package gldap
 
 import (
 	"crypto/tls"
+	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -54,4 +56,15 @@ func Test_WithDisablePanicRecovery(t *testing.T) {
 	testOpts := configDefaults()
 	testOpts.withDisablePanicRecovery = true
 	assert.Equal(opts, testOpts)
+}
+
+func Test_WitOnClose(t *testing.T) {
+	t.Parallel()
+	fn := func(int) {}
+	assert := assert.New(t)
+	opts := getConfigOpts(WithOnClose(fn))
+	testOpts := configDefaults()
+	testOpts.withOnClose = fn
+	assert.Equal(runtime.FuncForPC(reflect.ValueOf(opts.withOnClose).Pointer()).Name(),
+		runtime.FuncForPC(reflect.ValueOf(testOpts.withOnClose).Pointer()).Name())
 }
