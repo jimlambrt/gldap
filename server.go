@@ -15,15 +15,16 @@ import (
 // Server is an ldap server that you can add a mux (multiplexer) router to and
 // then run it to accept and process requests.
 type Server struct {
-	mu            sync.RWMutex
-	logger        hclog.Logger
-	connWg        sync.WaitGroup
-	listener      net.Listener
-	listenerReady bool
-	router        *Mux
-	tlsConfig     *tls.Config
-	readTimeout   time.Duration
-	writeTimeout  time.Duration
+	mu             sync.RWMutex
+	logger         hclog.Logger
+	connWg         sync.WaitGroup
+	listener       net.Listener
+	listenerReady  bool
+	router         *Mux
+	tlsConfig      *tls.Config
+	readTimeout    time.Duration
+	writeTimeout   time.Duration
+	onCloseHandler OnCloseHandler
 
 	disablePanicRecovery bool
 	shutdownCancel       context.CancelFunc
@@ -33,9 +34,10 @@ type Server struct {
 // NewServer creates a new ldap server
 //
 // Options supported:
-//  WithLogger allows you pass a logger with whatever hclog.Level you wish including hclog.Off to turn off all logging
-//  WithReadTimeout will set a read time out per connection
-//  WithWriteTimeout will set a write time out per connection
+// - WithLogger allows you pass a logger with whatever hclog.Level you wish including hclog.Off to turn off all logging
+// - WithReadTimeout will set a read time out per connection
+// - WithWriteTimeout will set a write time out per connection
+// - WithOnClose will define a callback the server will call every time a connection is closed
 func NewServer(opt ...Option) (*Server, error) {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	opts := getConfigOpts(opt...)
@@ -55,6 +57,7 @@ func NewServer(opt ...Option) (*Server, error) {
 		writeTimeout:         opts.withWriteTimeout,
 		readTimeout:          opts.withReadTimeout,
 		disablePanicRecovery: opts.withDisablePanicRecovery,
+		onCloseHandler:       opts.withOnClose,
 	}, nil
 }
 
@@ -110,7 +113,15 @@ func (s *Server) Run(addr string, opt ...Option) error {
 			defer func() {
 				s.logger.Debug("connWg done", "op", op, "conn", localConnID)
 				s.connWg.Done()
-				conn.close()
+				err := conn.close()
+				if err != nil {
+					s.logger.Error("error closing conn", "op", op, "conn", localConnID, "conn/req", "err", err)
+					// we are intentionally not returning here; since we still
+					// need to call the onCloseHandler if it's not nil
+				}
+				if s.onCloseHandler != nil {
+					s.onCloseHandler(localConnID)
+				}
 			}()
 
 			if !s.disablePanicRecovery {

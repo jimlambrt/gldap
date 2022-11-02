@@ -3,6 +3,7 @@ package gldap_test
 import (
 	"crypto/tls"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -113,6 +114,44 @@ func TestServer_Run(t *testing.T) {
 			client.Close()
 		})
 	}
+	t.Run("WithOnClose", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		closeCnt := 0
+		testOnCloseFn := func(_ int) {
+			closeCnt++
+			wg.Done()
+		}
+		s, err := gldap.NewServer(gldap.WithOnClose(testOnCloseFn))
+		require.NoError(err)
+		require.NotNil(s)
+
+		port := testdirectory.FreePort(t)
+
+		go func() {
+			err = s.Run(fmt.Sprintf(":%d", port), gldap.WithLogger(testLogger))
+			assert.NoError(err)
+		}()
+		t.Cleanup(func() { err := s.Stop(); assert.NoError(err) })
+
+		for {
+			time.Sleep(100 * time.Nanosecond)
+			if s.Ready() {
+				break
+			}
+		}
+
+		var dialOpts []ldap.DialOpt
+		client, err := ldap.DialURL(fmt.Sprintf("%s://localhost:%d", "ldap", port), dialOpts...)
+		require.NoError(err)
+		assert.NotNil(client)
+		client.Close()
+
+		wg.Wait()
+		assert.Equal(1, closeCnt)
+	})
 }
 
 func TestServer_shutdownCtx(t *testing.T) {
