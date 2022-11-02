@@ -32,7 +32,7 @@ func TestMux_serve(t *testing.T) {
 			err = s.Run(fmt.Sprintf(":%d", port))
 			assert.NoError(err)
 		}()
-		defer s.Stop()
+		defer func() { require.NoError(s.Stop()) }()
 		for {
 			time.Sleep(100 * time.Nanosecond)
 			if s.Ready() {
@@ -59,18 +59,20 @@ func TestMux_serve(t *testing.T) {
 
 		mux, err := NewMux()
 		require.NoError(err)
-		mux.DefaultRoute(func(w *ResponseWriter, req *Request) {
+		err = mux.DefaultRoute(func(w *ResponseWriter, req *Request) {
 			resp := req.NewResponse(WithResponseCode(ResultUnwillingToPerform), WithDiagnosticMessage("default handler"))
 			_ = w.Write(resp)
 		})
-		s.Router(mux)
+		require.NoError(err)
+		err = s.Router(mux)
+		require.NoError(err)
 
 		port := freePort(t)
 		go func() {
 			err = s.Run(fmt.Sprintf(":%d", port))
 			assert.NoError(err)
 		}()
-		defer s.Stop()
+		defer func() { _ = s.Stop() }()
 		for {
 			time.Sleep(100 * time.Nanosecond)
 			if s.Ready() {

@@ -137,18 +137,20 @@ func GetTLSConfig(t TestingT, opt ...Option) (s *tls.Config, c *tls.Config) {
 	require.NoError(err)
 
 	caPEM := new(bytes.Buffer)
-	pem.Encode(caPEM, &pem.Block{
+	err = pem.Encode(caPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: caBytes,
 	})
+	require.NoError(err)
 
 	privBytes, err := x509.MarshalPKCS8PrivateKey(caPriv)
 	require.NoError(err)
 	caPrivKeyPEM := new(bytes.Buffer)
-	pem.Encode(caPrivKeyPEM, &pem.Block{
+	err = pem.Encode(caPrivKeyPEM, &pem.Block{
 		Type:  "PRIVATE KEY",
 		Bytes: privBytes,
 	})
+	require.NoError(err)
 
 	cert := &x509.Certificate{
 		SerialNumber:          genSerialNumber(t),
@@ -212,19 +214,21 @@ func genCert(t TestingT, ca *x509.Certificate, caPriv interface{}, certTemplate 
 	require.NoError(err)
 
 	certPEM := new(bytes.Buffer)
-	pem.Encode(certPEM, &pem.Block{
+	err = pem.Encode(certPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	})
+	require.NoError(err)
 
 	privBytes, err := x509.MarshalPKCS8PrivateKey(certPrivKey)
 	require.NoError(err)
 
 	certPrivKeyPEM := new(bytes.Buffer)
-	pem.Encode(certPrivKeyPEM, &pem.Block{
+	err = pem.Encode(certPrivKeyPEM, &pem.Block{
 		Type:  "PRIVATE KEY",
 		Bytes: privBytes,
 	})
+	require.NoError(err)
 
 	newCert, err := tls.X509KeyPair(certPEM.Bytes(), certPrivKeyPEM.Bytes())
 	require.NoError(err)

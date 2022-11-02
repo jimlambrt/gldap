@@ -150,7 +150,7 @@ func runAddControlDescriptions(t *testing.T, originalControl Control, childDescr
 	}
 
 	encodedControls := encodeControls([]Control{originalControl})
-	addControlDescriptions(encodedControls)
+	require.NoError(t, addControlDescriptions(encodedControls))
 	encodedPacket := encodedControls.Children[0]
 	if len(encodedPacket.Children) != len(childDescriptions) {
 		t.Errorf("%sinvalid number of children: %d != %d", header, len(encodedPacket.Children), len(childDescriptions))

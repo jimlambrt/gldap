@@ -636,12 +636,6 @@ func TestDirectory_DeleteResponse(t *testing.T) {
 	td.SetUsers(users...)
 	td.SetGroups(groups)
 
-	const (
-		alice = 0
-		bob   = 1
-		eve   = 2
-	)
-
 	tests := []struct {
 		name            string
 		dn              string

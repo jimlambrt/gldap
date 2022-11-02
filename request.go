@@ -122,7 +122,7 @@ func (r *Request) StartTLS(tlsconfig *tls.Config) error {
 // Supported options: WithResponseCode, WithApplicationCode,
 // WithDiagnosticMessage, WithMatchedDN
 func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
-	const op = "gldap.NewResponse"
+	const op = "gldap.NewResponse" // nolint:unused
 	opts := getResponseOpts(opt...)
 	if opts.withResponseCode == nil {
 		opts.withResponseCode = intPtr(ResultUnwillingToPerform)
@@ -144,7 +144,7 @@ func (r *Request) NewResponse(opt ...Option) *GeneralResponse {
 // NewExtendedResponse creates a new extended response.
 // Supported options: WithResponseCode
 func (r *Request) NewExtendedResponse(opt ...Option) *ExtendedResponse {
-	const op = "gldap.NewExtendedResponse"
+	const op = "gldap.NewExtendedResponse" // nolint:unused
 	opts := getResponseOpts(opt...)
 	resp := &ExtendedResponse{
 		baseResponse: &baseResponse{
@@ -160,7 +160,7 @@ func (r *Request) NewExtendedResponse(opt ...Option) *ExtendedResponse {
 // NewBindResponse creates a new bind response.
 // Supported options: WithResponseCode
 func (r *Request) NewBindResponse(opt ...Option) *BindResponse {
-	const op = "gldap.NewBindResponse"
+	const op = "gldap.NewBindResponse" // nolint:unused
 	opts := getResponseOpts(opt...)
 	resp := &BindResponse{
 		baseResponse: &baseResponse{
@@ -190,7 +190,7 @@ func (r *Request) GetSimpleBindMessage() (*SimpleBindMessage, error) {
 //
 // Supported options: WithResponseCode
 func (r *Request) NewSearchDoneResponse(opt ...Option) *SearchResponseDone {
-	const op = "gldap.(Request).NewSearchDoneResponse"
+	const op = "gldap.(Request).NewSearchDoneResponse" // nolint:unused
 	opts := getResponseOpts(opt...)
 	resp := &SearchResponseDone{
 		baseResponse: &baseResponse{

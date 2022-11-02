@@ -27,6 +27,10 @@ func withMinChildren(min int) Option {
 	}
 }
 
+// we'll see if we start using this again in the near future,
+// but for now ignore the warning
+//
+//nolint:unused
 func withLenChildren(len int) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*messageOptions); ok {
