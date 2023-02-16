@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
@@ -661,6 +662,7 @@ func Test_Start_Unbind(t *testing.T) {
 		go func() { require.NoError(s.Run(fmt.Sprintf(":%d", port))) }()
 		defer func() { require.NoError(s.Stop()) }()
 
+		time.Sleep(1 * time.Second)
 		conn, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", port))
 		require.NoError(err)
 		defer conn.Close()

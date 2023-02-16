@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
@@ -132,6 +133,7 @@ func Test_Start(t *testing.T) {
 
 		td := testdirectory.Start(l, testdirectory.WithLogger(l, bufLogger))
 		td.Stop()
+		time.Sleep(1 * time.Second)
 		assert.Contains(buf.String(), "stopped")
 	})
 	t.Run("start-gldap.WithDisablePanicRecovery", func(t *testing.T) {
