@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/go-ldap/ldap/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jimlambrt/gldap"
@@ -723,12 +724,29 @@ func (d *Directory) Conn() *ldap.Conn {
 	}
 	require := require.New(d.t)
 
-	if d.useTLS {
-		conn, err := ldap.DialURL(fmt.Sprintf("ldaps://localhost:%d", d.Port()), ldap.DialWithTLSConfig(d.client))
-		require.NoError(err)
-		return conn
+	var conn *ldap.Conn
+	retryAttempt := 5
+	retryErrFn := func(e error) error {
+		if retryAttempt > 0 {
+			fmt.Println(retryAttempt)
+			retryAttempt--
+			return backoff.Permanent(e)
+		}
+		return backoff.Permanent(e)
 	}
-	conn, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", d.Port()))
+	err := backoff.Retry(func() error {
+		var connErr error
+		if d.useTLS {
+			if conn, connErr = ldap.DialURL(fmt.Sprintf("ldaps://localhost:%d", d.Port()), ldap.DialWithTLSConfig(d.client)); connErr != nil {
+				return retryErrFn(connErr)
+			}
+			return nil
+		}
+		if conn, connErr = ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", d.Port())); connErr != nil {
+			return retryErrFn(connErr)
+		}
+		return nil
+	}, backoff.NewConstantBackOff(1*time.Second))
 	require.NoError(err)
 	return conn
 }
