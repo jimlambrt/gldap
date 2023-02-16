@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	ber "github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/jimlambrt/gldap"
@@ -374,7 +375,7 @@ func TestDirectory_ModifyResponse(t *testing.T) {
 				DN: users[alice].DN,
 				Attributes: func() []*gldap.EntryAttribute {
 					attrs := append([]*gldap.EntryAttribute{}, users[alice].Attributes...)
-					attrs = append(attrs, gldap.NewEntryAttribute("description", []string{"\x04\x12test-add-attribute"}))
+					attrs = append(attrs, gldap.NewEntryAttribute("description", []string{gldap.TestEncodeString(t, ber.TagOctetString, "test-add-attribute")}))
 					return attrs
 				}(),
 			},
