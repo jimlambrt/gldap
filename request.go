@@ -2,7 +2,10 @@ package gldap
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
+
+	ber "github.com/go-asn1-ber/asn1-ber"
 )
 
 // ExtendedOperationName is an extended operation request/response name
@@ -275,6 +278,95 @@ func (r *Request) GetUnbindMessage() (*UnbindMessage, error) {
 		return nil, fmt.Errorf("%s: %T not an unbind request: %w", op, r.message, ErrInvalidParameter)
 	}
 	return m, nil
+}
+
+// ConvertString will convert an ASN1 BER Octet string into a "native" go
+// string.  Support ber string encoding types: OctetString, GeneralString and
+// all other types will return an error.
+func ConvertString(octetString ...string) ([]string, error) {
+	const (
+		op             = "gldap.ConvertOctetString"
+		berTagIdx      = 0
+		startOfDataIdx = 1
+	)
+
+	converted := make([]string, 0, len(octetString))
+
+	for _, s := range octetString {
+		data := []byte(s)
+
+		switch {
+		case
+			ber.Tag(data[berTagIdx]) == ber.TagOctetString,
+			ber.Tag(data[berTagIdx]) == ber.TagGeneralString:
+			_, strDataLen, err := readLength(data[startOfDataIdx:])
+			if err != nil {
+				return nil, err
+			}
+			converted = append(converted, string(data[(startOfDataIdx+strDataLen):]))
+
+		default:
+			return nil, fmt.Errorf("%s: unsupported ber encoding type %s: %w", op, string(data[berTagIdx]), ErrInvalidParameter)
+		}
+	}
+
+	return converted, nil
+}
+
+// readLength(...)
+// jimlambrt: 2/2023
+// copied directly from github.com/go-asn1-ber/asn1-ber@v1.5.4/length.go
+// it has an MIT license: https://github.com/go-asn1-ber/asn1-ber/blob/master/LICENSE
+func readLength(bytes []byte) (length int, read int, err error) {
+	// length byte
+	b := bytes[0]
+	read++
+
+	switch {
+	case b == 0xFF:
+		// Invalid 0xFF (x.600, 8.1.3.5.c)
+		return 0, read, errors.New("invalid length byte 0xff")
+
+	case b == ber.LengthLongFormBitmask:
+		// Indefinite form, we have to decode packets until we encounter an EOC packet (x.600, 8.1.3.6)
+		length = ber.LengthIndefinite
+
+	case b&ber.LengthLongFormBitmask == 0:
+		// Short definite form, extract the length from the bottom 7 bits (x.600, 8.1.3.4)
+		length = int(b) & ber.LengthValueBitmask
+
+	case b&ber.LengthLongFormBitmask != 0:
+		// Long definite form, extract the number of length bytes to follow from the bottom 7 bits (x.600, 8.1.3.5.b)
+		lengthBytes := int(b) & ber.LengthValueBitmask
+		// Protect against overflow
+		// TODO: support big int length?
+		if lengthBytes > 8 {
+			return 0, read, errors.New("long-form length overflow")
+		}
+
+		// Accumulate into a 64-bit variable
+		var length64 int64
+		for i := 0; i < lengthBytes; i++ {
+			b = bytes[read]
+			read++
+
+			// x.600, 8.1.3.5
+			length64 <<= 8
+			length64 |= int64(b)
+		}
+
+		// Cast to a platform-specific integer
+		length = int(length64)
+		// Ensure we didn't overflow
+		if int64(length) != length64 {
+			return 0, read, errors.New("long-form length overflow")
+		}
+
+	default:
+		return 0, read, errors.New("invalid length byte")
+	}
+
+	return length, read, nil
 }
 
 func intPtr(i int) *int {

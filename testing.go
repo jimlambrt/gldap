@@ -11,6 +11,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testOptions struct {
+	// test options
+	withDescription string
+}
+
+func testDefaults() testOptions {
+	return testOptions{}
+}
+
+func getTestOpts(opt ...Option) testOptions {
+	opts := testDefaults()
+	applyOpts(&opts, opt...)
+	return opts
+}
+
+// WithDescription allows you to specify an optional description.
+func WithDescription(desc string) Option {
+	return func(o interface{}) {
+		if o, ok := o.(*testOptions); ok {
+			o.withDescription = desc
+		}
+	}
+}
+
 func freePort(t *testing.T) int {
 	t.Helper()
 	require := require.New(t)
@@ -213,4 +237,13 @@ func testControlPaging(t *testing.T, pagingSize uint32, opt ...Option) *ControlP
 func TestWithDebug(t *testing.T) bool {
 	t.Helper()
 	return strings.ToLower(os.Getenv("DEBUG")) == "true"
+}
+
+func TestEncodeString(t *testing.T, tag ber.Tag, s string, opt ...Option) string {
+	t.Helper()
+	opts := getTestOpts(opt...)
+	pkt := ber.NewString(ber.ClassUniversal, ber.TypePrimitive, tag, s, opts.withDescription)
+	dec, err := ber.DecodePacketErr(pkt.Bytes())
+	require.NoError(t, err)
+	return string(dec.Bytes())
 }

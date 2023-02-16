@@ -129,7 +129,7 @@ func Test_newRequest(t *testing.T) {
 					{
 						Operation: AddAttribute,
 						Modification: PartialAttribute{
-							Type: "mail", Vals: []string{"\x04\x11alice@example.com"},
+							Type: "mail", Vals: []string{TestEncodeString(t, ber.TagOctetString, "alice@example.com")},
 						},
 					},
 				},
@@ -314,4 +314,59 @@ func TestRequest_GetConnectionID(t *testing.T) {
 	req, err := newRequest(requestID, conn, packet)
 	require.NoError(err)
 	assert.Equal(connID, req.ConnectionID())
+}
+
+func TestConvertString(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "\x04\x12test-add-attribute", TestEncodeString(t, ber.TagOctetString, "test-add-attribute"))
+
+	tests := []struct {
+		name            string
+		encodedStrings  []string
+		want            []string
+		wantErr         bool
+		wantErrIs       error
+		wantErrContains string
+	}{
+		{
+			name:           "just-octet-strings",
+			encodedStrings: []string{TestEncodeString(t, ber.TagOctetString, "test-string-1"), TestEncodeString(t, ber.TagOctetString, "test-string-2")},
+			want:           []string{"test-string-1", "test-string-2"},
+		},
+		{
+			name:           "mixed-supported-conversions",
+			encodedStrings: []string{TestEncodeString(t, ber.TagGeneralString, "test-string-1"), TestEncodeString(t, ber.TagOctetString, "test-string-2")},
+			want:           []string{"test-string-1", "test-string-2"},
+		},
+		{
+			name:            "unsupported",
+			encodedStrings:  []string{TestEncodeString(t, ber.TagGraphicString, "test-string")},
+			wantErr:         true,
+			wantErrIs:       ErrInvalidParameter,
+			wantErrContains: "unsupported ber encoding type \x19: invalid parameter",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+
+			assert, require := assert.New(t), require.New(t)
+
+			got, err := ConvertString(tc.encodedStrings...)
+			if tc.wantErr {
+				require.Error(err)
+				assert.Nil(got)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(err, tc.wantErrIs)
+				}
+				if tc.wantErrContains != "" {
+					assert.Contains(err.Error(), tc.wantErrContains)
+				}
+				return
+			}
+			require.NoError(err)
+			require.NotNil(got)
+			assert.Equal(tc.want, got)
+		})
+	}
 }
