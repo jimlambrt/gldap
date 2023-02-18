@@ -1,8 +1,9 @@
 module github.com/jimlambrt/gldap
 
-go 1.17
+go 1.20
 
 require (
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/go-asn1-ber/asn1-ber v1.5.4
 	github.com/go-ldap/ldap/v3 v3.4.4
 	github.com/hashicorp/go-hclog v1.4.0
@@ -12,8 +13,6 @@ require (
 
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
