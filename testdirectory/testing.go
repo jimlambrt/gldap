@@ -151,12 +151,18 @@ func GetTLSConfig(t TestingT, opt ...Option) (s *tls.Config, c *tls.Config) {
 		Bytes: privBytes,
 	})
 	require.NoError(err)
+	opts := getOpts(t, opt...)
+
+	var ipAddrs []net.IP
+	if hostIp := net.ParseIP(opts.withHost); hostIp != nil {
+		ipAddrs = append(ipAddrs, hostIp)
+	}
 
 	cert := &x509.Certificate{
 		SerialNumber:          genSerialNumber(t),
 		Subject:               certSubject,
-		IPAddresses:           []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
-		DNSNames:              []string{"localhost"},
+		IPAddresses:           ipAddrs,
+		DNSNames:              []string{opts.withHost},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(1, 0, 0),
 		SubjectKeyId:          []byte{1, 2, 3, 4, 6},
@@ -178,7 +184,6 @@ func GetTLSConfig(t TestingT, opt ...Option) (s *tls.Config, c *tls.Config) {
 		RootCAs: certpool,
 	}
 
-	opts := getOpts(t, opt...)
 	if opts.withMTLS {
 		// setup mTLS for certs from the ca
 		serverTLSConf.ClientCAs = certpool

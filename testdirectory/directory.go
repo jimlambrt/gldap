@@ -62,6 +62,7 @@ type Directory struct {
 	s      *gldap.Server
 	logger hclog.Logger
 	port   int
+	host   string
 	useTLS bool
 	client *tls.Config
 	server *tls.Config
@@ -101,6 +102,7 @@ func Start(t TestingT, opt ...Option) *Directory {
 		users:              opts.withDefaults.Users,
 		groups:             opts.withDefaults.Groups,
 		port:               opts.withPort,
+		host:               opts.withHost,
 		userDN:             opts.withDefaults.UserDN,
 		groupDN:            opts.withDefaults.GroupDN,
 		allowAnonymousBind: opts.withDefaults.AllowAnonymousBind,
@@ -148,7 +150,7 @@ func Start(t TestingT, opt ...Option) *Directory {
 		d.logger.Debug("not using TLS")
 	}
 	go func() {
-		_ = d.s.Run(fmt.Sprintf(":%d", opts.withPort), connOpts...)
+		_ = d.s.Run(fmt.Sprintf("%s:%d", opts.withHost, opts.withPort), connOpts...)
 	}()
 
 	if v, ok := interface{}(t).(CleanupT); ok {
@@ -737,12 +739,12 @@ func (d *Directory) Conn() *ldap.Conn {
 	err := backoff.Retry(func() error {
 		var connErr error
 		if d.useTLS {
-			if conn, connErr = ldap.DialURL(fmt.Sprintf("ldaps://localhost:%d", d.Port()), ldap.DialWithTLSConfig(d.client)); connErr != nil {
+			if conn, connErr = ldap.DialURL(fmt.Sprintf("ldaps://%s:%d", d.Host(), d.Port()), ldap.DialWithTLSConfig(d.client)); connErr != nil {
 				return retryErrFn(connErr)
 			}
 			return nil
 		}
-		if conn, connErr = ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", d.Port())); connErr != nil {
+		if conn, connErr = ldap.DialURL(fmt.Sprintf("ldap://%s:%d", d.Host(), d.Port())); connErr != nil {
 			return retryErrFn(connErr)
 		}
 		return nil
@@ -775,6 +777,14 @@ func (d *Directory) Port() int {
 		v.Helper()
 	}
 	return d.port
+}
+
+// Host returns the host the directory is listening on
+func (d *Directory) Host() string {
+	if v, ok := interface{}(d.t).(HelperT); ok {
+		v.Helper()
+	}
+	return d.host
 }
 
 // ClientCert returns the pem-encoded certificate which can be used by a client
