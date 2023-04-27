@@ -33,6 +33,7 @@ func Test_Start(t *testing.T) {
 		td := testdirectory.Start(
 			t,
 			testdirectory.WithPort(t, port),
+			testdirectory.WithHost(t, "127.0.0.1"),
 			testdirectory.WithDefaults(t, &testdirectory.Defaults{Users: testEntries}),
 			testdirectory.WithLogger(t, testLogger),
 			testdirectory.WithNoTLS(t),
@@ -50,6 +51,7 @@ func Test_Start(t *testing.T) {
 		port := testdirectory.FreePort(t)
 		td := testdirectory.Start(
 			t,
+			testdirectory.WithHost(t, "0.0.0.0"),
 			testdirectory.WithPort(t, port),
 			testdirectory.WithDefaults(t, &testdirectory.Defaults{Users: testEntries}),
 			testdirectory.WithLogger(t, testLogger),

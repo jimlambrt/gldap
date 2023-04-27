@@ -1,6 +1,8 @@
 package testdirectory
 
 import (
+	"strings"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/jimlambrt/gldap"
 )
@@ -33,6 +35,7 @@ func applyOpts(opts interface{}, opt ...Option) {
 // options are the set of available options for test functions
 type options struct {
 	withPort                 int
+	withHost                 string
 	withLogger               hclog.Logger
 	withNoTLS                bool
 	withMTLS                 bool
@@ -56,6 +59,7 @@ func defaults(t TestingT) options {
 
 	return options{
 		withLogger: debugLogger,
+		withHost:   "localhost",
 		withDefaults: &Defaults{
 			UserAttr:  DefaultUserAttr,
 			GroupAttr: DefaultGroupAttr,
@@ -168,6 +172,15 @@ func WithPort(t TestingT, port int) Option {
 	return func(o interface{}) {
 		if o, ok := o.(*options); ok {
 			o.withPort = port
+		}
+	}
+}
+
+// WithHost provides an optional hostname for the directory
+func WithHost(t TestingT, host string) Option {
+	return func(o interface{}) {
+		if o, ok := o.(*options); ok {
+			o.withHost = strings.TrimSpace(host)
 		}
 	}
 }
