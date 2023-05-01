@@ -162,8 +162,11 @@ func (c *conn) readPacket(requestID int) (*packet, error) {
 		c.mu.Lock()
 		defer c.mu.Unlock()
 		berPacket, err := ber.ReadPacket(c.reader)
-		if err != nil {
-			return nil, fmt.Errorf("%s: error reading ber packet for %d/%d:  %w", op, c.connID, requestID, err)
+		switch {
+		case err != nil && strings.Contains(err.Error(), "invalid character for IA5String at pos 2"):
+			return nil, fmt.Errorf("%s: error reading ber packet for %d/%d (possible attempt to use TLS with a non-TLS server): %w", op, c.connID, requestID, err)
+		case err != nil:
+			return nil, fmt.Errorf("%s: error reading ber packet for %d/%d: %w", op, c.connID, requestID, err)
 		}
 		return berPacket, nil
 	}()
