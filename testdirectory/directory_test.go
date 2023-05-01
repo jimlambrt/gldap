@@ -230,7 +230,7 @@ func TestDirectory_SearchResponse(t *testing.T) {
 	sidBytes, err := gldap.SIDBytes(1, 1)
 	require.NoError(t, err)
 
-	users := testdirectory.NewUsers(t, []string{"alice", "bob"}, testdirectory.WithMembersOf(t, "admin"), testdirectory.WithTokenGroups(t, sidBytes))
+	users := testdirectory.NewUsers(t, []string{"alice", "bob", "admin"}, testdirectory.WithMembersOf(t, "admin"), testdirectory.WithTokenGroups(t, sidBytes))
 	users = append(
 		users,
 		testdirectory.NewUsers(
@@ -288,6 +288,12 @@ func TestDirectory_SearchResponse(t *testing.T) {
 			filter:      fmt.Sprintf("(%s=alice,%s)", testdirectory.DefaultUserAttr, testdirectory.DefaultUserDN),
 			baseDN:      testdirectory.DefaultGroupDN,
 			wantEntries: []*gldap.Entry{groups[0]},
+		},
+		{
+			name:        "admin-member-found-no-dups",
+			filter:      fmt.Sprintf("(%s=admin)", testdirectory.DefaultUserAttr),
+			baseDN:      testdirectory.DefaultGroupDN,
+			wantEntries: []*gldap.Entry{groups[0], groups[1]},
 		},
 		{
 			name:            "admin-member-not-found",

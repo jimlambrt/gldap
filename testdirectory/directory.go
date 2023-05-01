@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/jimlambrt/gldap"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -118,6 +119,8 @@ func Start(t TestingT, opt ...Option) *Directory {
 	}
 	d.s, err = gldap.NewServer(srvOpts...)
 	require.NoError(err)
+
+	d.logger.Debug("base search DNs", "users", d.userDN, "groups", d.groupDN)
 
 	mux, err := gldap.NewMux()
 	require.NoError(err)
@@ -333,38 +336,40 @@ func (d *Directory) handleSearchGeneric(t TestingT) func(w *gldap.ResponseWriter
 		}
 
 		d.logger.Debug("filter", "op", op, "value", filter)
+		var entries []*gldap.Entry
 		for _, e := range d.users {
 			if ok, _ := match(filter, e.DN); !ok {
 				continue
 			}
-			result := r.NewSearchResponseEntry(e.DN)
-			for _, attr := range e.Attributes {
-				result.AddAttribute(attr.Name, attr.Values)
-			}
+			entries = append(entries, e)
 			foundEntries += 1
-			err := w.Write(result)
-			if err != nil {
-				d.logger.Error("error writing result: %s", "op", op, "err", err)
-				return
-			}
 		}
 		for _, e := range d.groups {
 			if ok, _ := match(filter, e.DN); !ok {
 				continue
 			}
-			result := r.NewSearchResponseEntry(e.DN)
-			for _, attr := range e.Attributes {
-				result.AddAttribute(attr.Name, attr.Values)
-			}
-			foundEntries += 1
-			err = w.Write(result)
-			if err != nil {
-				d.logger.Error("error writing result: %s", "op", op, "err", err)
-				return
+			switch {
+			case slices.Contains(entries, e):
+				continue
+			default:
+				entries = append(entries, e)
+				foundEntries += 1
 			}
 		}
 		if foundEntries > 0 {
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
+			for _, e := range entries {
+				result := r.NewSearchResponseEntry(e.DN)
+				for _, attr := range e.Attributes {
+					result.AddAttribute(attr.Name, attr.Values)
+				}
+				foundEntries += 1
+				err := w.Write(result)
+				if err != nil {
+					d.logger.Error("error writing result: %s", "op", op, "err", err)
+					return
+				}
+			}
 			if d.controls != nil {
 				d.mu.Lock()
 				defer d.mu.Unlock()
@@ -397,38 +402,37 @@ func (d *Directory) handleSearchGroups(t TestingT) func(w *gldap.ResponseWriter,
 		}
 		d.logSearchRequest(m)
 
-		var foundEntries int
 		_, entries := d.findMembers(m.Filter)
-		for _, e := range entries {
-			result := r.NewSearchResponseEntry(e.DN)
-			for _, attr := range e.Attributes {
-				result.AddAttribute(attr.Name, attr.Values)
-			}
-			foundEntries += 1
-			err := w.Write(result)
-			if err != nil {
-				d.logger.Error("error writing result: %s", "op", op, "err", err)
-				return
-			}
-		}
+		foundEntries := len(entries)
+
 		for _, e := range d.groups {
 			if ok, _ := match(m.Filter, e.DN); !ok {
 				continue
 			}
-			result := r.NewSearchResponseEntry(e.DN)
-			for _, attr := range e.Attributes {
-				result.AddAttribute(attr.Name, attr.Values)
+			switch {
+			case slices.Contains(entries, e):
+				continue
+			default:
+				entries = append(entries, e)
 			}
 			foundEntries += 1
-			err = w.Write(result)
-			if err != nil {
-				d.logger.Error("error writing result: %s", "op", op, "err", err)
-				return
-			}
 		}
 
 		if foundEntries > 0 {
+			for _, e := range entries {
+				result := r.NewSearchResponseEntry(e.DN)
+				for _, attr := range e.Attributes {
+					result.AddAttribute(attr.Name, attr.Values)
+				}
+				foundEntries += 1
+				err = w.Write(result)
+				if err != nil {
+					d.logger.Error("error writing result: %s", "op", op, "err", err)
+					return
+				}
+			}
 			d.logger.Debug("found entries", "op", op, "count", foundEntries)
+
 			if d.controls != nil {
 				d.mu.Lock()
 				defer d.mu.Unlock()
