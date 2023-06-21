@@ -2,16 +2,27 @@ package gldap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"os"
+	"strconv"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestServer_Stop(t *testing.T) {
 	t.Parallel()
+	var testLogger hclog.Logger
+	if ok, _ := strconv.ParseBool(os.Getenv("DEBUG")); ok {
+		testLogger = hclog.New(&hclog.LoggerOptions{
+			Name:  "TestServer_Run-logger",
+			Level: hclog.Debug,
+		})
+	}
 	tests := []struct {
 		name            string
 		server          *Server
@@ -21,15 +32,13 @@ func TestServer_Stop(t *testing.T) {
 		{
 			name: "missing-listener",
 			server: func() *Server {
-				s, err := NewServer()
+				s, err := NewServer(WithLogger(testLogger))
 				require.NoError(t, err)
 				s.mu.Lock()
 				defer s.mu.Unlock()
 				s.listener = nil
 				return s
 			}(),
-			wantErr:         true,
-			wantErrContains: "no listener",
 		},
 		{
 			name: "missing-cancel",
@@ -37,7 +46,7 @@ func TestServer_Stop(t *testing.T) {
 				p := freePort(t)
 				l, err := net.Listen("tcp", fmt.Sprintf(":%d", p))
 				require.NoError(t, err)
-				s, err := NewServer()
+				s, err := NewServer(WithLogger(testLogger))
 				require.NoError(t, err)
 				s.mu.Lock()
 				defer s.mu.Unlock()
@@ -45,8 +54,18 @@ func TestServer_Stop(t *testing.T) {
 				s.shutdownCancel = nil
 				return s
 			}(),
-			wantErr:         true,
-			wantErrContains: "no shutdown context cancel func",
+		},
+		{
+			name: "nothing-to-do",
+			server: func() *Server {
+				s, err := NewServer(WithLogger(testLogger))
+				require.NoError(t, err)
+				s.mu.Lock()
+				defer s.mu.Unlock()
+				s.listener = nil
+				s.shutdownCancel = nil
+				return s
+			}(),
 		},
 		{
 			name: "listener-closed",
@@ -55,7 +74,7 @@ func TestServer_Stop(t *testing.T) {
 				p := freePort(t)
 				l, err := net.Listen("tcp", fmt.Sprintf(":%d", p))
 				require.NoError(t, err)
-				s, err := NewServer()
+				s, err := NewServer(WithLogger(testLogger))
 				require.NoError(t, err)
 				s.mu.Lock()
 				defer s.mu.Unlock()
@@ -64,8 +83,21 @@ func TestServer_Stop(t *testing.T) {
 				l.Close()
 				return s
 			}(),
+		},
+		{
+			name: "listener-close-err",
+			server: func() *Server {
+				_, cancel := context.WithCancel(context.Background())
+				s, err := NewServer(WithLogger(testLogger))
+				require.NoError(t, err)
+				s.mu.Lock()
+				defer s.mu.Unlock()
+				s.listener = &mockListener{}
+				s.shutdownCancel = cancel
+				return s
+			}(),
 			wantErr:         true,
-			wantErrContains: "use of closed network connection",
+			wantErrContains: "mockListener.Close error",
 		},
 	}
 	for _, tc := range tests {
@@ -82,4 +114,12 @@ func TestServer_Stop(t *testing.T) {
 			require.NoError(err)
 		})
 	}
+}
+
+type mockListener struct {
+	net.Listener
+}
+
+func (*mockListener) Close() error {
+	return errors.New("mockListener.Close error")
 }

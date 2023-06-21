@@ -164,17 +164,28 @@ func (s *Server) Stop() error {
 	const op = "gldap.(Server).Stop"
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.listener == nil {
-		return fmt.Errorf("%s: no listener: %w", op, ErrInvalidState)
-	}
-	if s.shutdownCancel == nil {
-		return fmt.Errorf("%s: no shutdown context cancel func: %w", op, ErrInvalidState)
-	}
-	if err := s.listener.Close(); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
+
 	s.logger.Debug("shutting down")
-	s.shutdownCancel()
+	if s.listener == nil && s.shutdownCancel == nil {
+		s.logger.Debug("nothing to do for shutdown")
+		return nil
+	}
+
+	if s.listener != nil {
+		s.logger.Debug("closing listener")
+		if err := s.listener.Close(); err != nil {
+			switch {
+			case !strings.Contains(err.Error(), "use of closed network connection"):
+				return fmt.Errorf("%s: %w", op, err)
+			default:
+				s.logger.Debug("listener already closed")
+			}
+		}
+	}
+	if s.shutdownCancel != nil {
+		s.logger.Debug("shutdown cancel func")
+		s.shutdownCancel()
+	}
 	s.logger.Debug("waiting on connections to close")
 	s.connWg.Wait()
 	s.logger.Debug("stopped")
