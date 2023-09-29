@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -246,4 +247,28 @@ func TestEncodeString(t *testing.T, tag ber.Tag, s string, opt ...Option) string
 	dec, err := ber.DecodePacketErr(pkt.Bytes())
 	require.NoError(t, err)
 	return string(dec.Bytes())
+}
+
+type safeBuf struct {
+	buf *strings.Builder
+	mu  *sync.Mutex
+}
+
+func testSafeBuf(t *testing.T) *safeBuf {
+	t.Helper()
+	return &safeBuf{
+		mu:  &sync.Mutex{},
+		buf: &strings.Builder{},
+	}
+}
+func (w *safeBuf) Write(p []byte) (n int, err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.Write(p)
+}
+
+func (w *safeBuf) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.String()
 }
