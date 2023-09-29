@@ -1,6 +1,6 @@
 # gldap
 [![Go Reference](https://pkg.go.dev/badge/github.com/jimlambrt/gldap/gldap.svg)](https://pkg.go.dev/github.com/jimlambrt/gldap)
-![Coverage](https://img.shields.io/badge/Coverage-88.6%25-brightgreen)
+[![Go Coverage](https://raw.githack.com/jimlambrt/gldap/main/coverage/coverage.svg)](https://raw.githack.com/jimlambrt/gldap/main/coverage/coverage.html)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jimlambrt/gldap)](https://goreportcard.com/report/github.com/jimlambrt/gldap)
 
 <hr>

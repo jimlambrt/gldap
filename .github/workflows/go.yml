@@ -9,45 +9,35 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: true
       matrix:
-        go: ["1.19", "1.20", "1.18"]
+        go: ["1.21", "1.20", "1.19"]
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
-    steps:
-      - uses: actions/checkout@v2
 
-      - name: Set up Go
-        uses: actions/setup-go@v2
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.18
+          go-version: ${{ matrix.go }}
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: go mod package cache
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
       - name: Build
         run: go build -v ./...
 
       - name: Test
         run: |
-          go test -v -cover ./... -coverprofile coverage.out -coverpkg ./...
-          go tool cover -func coverage.out -o coverage.out  # Replaces coverage.out with the analysis of coverage.out
+          go test ./...
 
-      - name: Go Coverage Badge
-        if: matrix.platform == '1.20'
-        uses: tj-actions/coverage-badge-go@v1
-        with:
-          green: 80
-          filename: coverage.out
-
-      - uses: stefanzweifel/git-auto-commit-action@v4
-        if: matrix.platform == '1.20'
-        id: auto-commit-action
-        with:
-          commit_message: Apply Code Coverage Badge
-          skip_fetch: true
-          skip_checkout: true
-          file_pattern: ./README.md
-
-      - name: Push Changes
-        if: steps.auto-commit-action.outputs.changes_detected == 'true' && matrix.platform == '1.20'
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ github.token }}
-          branch: ${{ github.ref }}
+      - name: Coverage
+        if: ${{ matrix.go != '1.19' }}
+        run: |
+          make coverage-diff
