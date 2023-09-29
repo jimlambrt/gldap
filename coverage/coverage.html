@@ -101,7 +101,7 @@
 				
 				<option value="file22">github.com/jimlambrt/gldap/testdirectory/testingt.go (100.0%)</option>
 				
-				<option value="file23">github.com/jimlambrt/gldap/testing.go (98.5%)</option>
+				<option value="file23">github.com/jimlambrt/gldap/testing.go (96.4%)</option>
 				
 				</select>
 			</div>
@@ -4168,7 +4168,8 @@ func Start(t TestingT, opt ...Option) *Directory <span class="cov8" title="1">{
                 d.logger.Debug("not using TLS")
         }</span>
         <span class="cov8" title="1">go func() </span><span class="cov8" title="1">{
-                _ = d.s.Run(fmt.Sprintf("%s:%d", opts.withHost, opts.withPort), connOpts...)
+                err := d.s.Run(fmt.Sprintf("%s:%d", opts.withHost, opts.withPort), connOpts...)
+                require.NoError(err)
         }</span>()
 
         <span class="cov8" title="1">if v, ok := interface{}(t).(CleanupT); ok </span><span class="cov8" title="1">{
@@ -5475,6 +5476,7 @@ import (
         "net"
         "os"
         "strings"
+        "sync"
         "testing"
 
         ber "github.com/go-asn1-ber/asn1-ber"
@@ -5717,6 +5719,30 @@ func TestEncodeString(t *testing.T, tag ber.Tag, s string, opt ...Option) string
         dec, err := ber.DecodePacketErr(pkt.Bytes())
         require.NoError(t, err)
         return string(dec.Bytes())
+}</span>
+
+type safeBuf struct {
+        buf *strings.Builder
+        mu  *sync.Mutex
+}
+
+func testSafeBuf(t *testing.T) *safeBuf <span class="cov8" title="1">{
+        t.Helper()
+        return &amp;safeBuf{
+                mu:  &amp;sync.Mutex{},
+                buf: &amp;strings.Builder{},
+        }
+}</span>
+func (w *safeBuf) Write(p []byte) (n int, err error) <span class="cov8" title="1">{
+        w.mu.Lock()
+        defer w.mu.Unlock()
+        return w.buf.Write(p)
+}</span>
+
+func (w *safeBuf) String() string <span class="cov0" title="0">{
+        w.mu.Lock()
+        defer w.mu.Unlock()
+        return w.buf.String()
 }</span>
 </pre>
 		
