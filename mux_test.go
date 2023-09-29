@@ -19,11 +19,11 @@ func TestMux_serve(t *testing.T) {
 	t.Parallel()
 	t.Run("no-matching-handler", func(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
-		var buf bytes.Buffer
+		buf := testSafeBuf(t)
 		testLogger := hclog.New(&hclog.LoggerOptions{
 			Name:   "TestServer_Run-logger",
 			Level:  hclog.Debug,
-			Output: &buf,
+			Output: buf,
 		})
 		s, err := NewServer(WithLogger(testLogger))
 		require.NoError(err)
@@ -48,11 +48,14 @@ func TestMux_serve(t *testing.T) {
 	})
 	t.Run("default-route", func(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
-		var buf bytes.Buffer
+		buf := &safeBuf{
+			mu:  &sync.Mutex{},
+			buf: &strings.Builder{},
+		}
 		testLogger := hclog.New(&hclog.LoggerOptions{
 			Name:   "TestServer_Run-logger",
 			Level:  hclog.Debug,
-			Output: &buf,
+			Output: buf,
 		})
 		s, err := NewServer(WithLogger(testLogger))
 		require.NoError(err)

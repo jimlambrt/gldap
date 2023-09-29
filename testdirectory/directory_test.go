@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -123,7 +124,7 @@ func Test_Start(t *testing.T) {
 	})
 	t.Run("start-with-TestingT", func(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
-		buf := &strings.Builder{}
+		buf := testSafeBuf(t)
 		bufLogger := hclog.New(&hclog.LoggerOptions{
 			Name:   "my-app",
 			Level:  hclog.LevelFromString("DEBUG"),
@@ -142,6 +143,30 @@ func Test_Start(t *testing.T) {
 		// not sure there's anything that's assertable here...
 		_ = testdirectory.Start(t, testdirectory.WithDisablePanicRecovery(t, true))
 	})
+}
+
+type safeBuf struct {
+	buf *strings.Builder
+	mu  *sync.Mutex
+}
+
+func testSafeBuf(t *testing.T) *safeBuf {
+	t.Helper()
+	return &safeBuf{
+		mu:  &sync.Mutex{},
+		buf: &strings.Builder{},
+	}
+}
+func (w *safeBuf) Write(p []byte) (n int, err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.Write(p)
+}
+
+func (w *safeBuf) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.String()
 }
 
 func TestDirectory_SimpleBindResponse(t *testing.T) {

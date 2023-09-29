@@ -1,7 +1,6 @@
 package gldap
 
 import (
-	"bytes"
 	"context"
 	"net"
 	"testing"
@@ -17,10 +16,10 @@ func Test_newConn(t *testing.T) {
 	server, client := net.Pipe()
 	t.Cleanup(func() { server.Close(); client.Close() })
 
-	var buf bytes.Buffer
+	buf := testSafeBuf(t)
 	testLogger := hclog.New(&hclog.LoggerOptions{
 		Name:   "test",
-		Output: &buf,
+		Output: buf,
 	})
 
 	tests := map[string]struct {

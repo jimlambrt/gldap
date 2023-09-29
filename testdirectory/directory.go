@@ -153,7 +153,8 @@ func Start(t TestingT, opt ...Option) *Directory {
 		d.logger.Debug("not using TLS")
 	}
 	go func() {
-		_ = d.s.Run(fmt.Sprintf("%s:%d", opts.withHost, opts.withPort), connOpts...)
+		err := d.s.Run(fmt.Sprintf("%s:%d", opts.withHost, opts.withPort), connOpts...)
+		require.NoError(err)
 	}()
 
 	if v, ok := interface{}(t).(CleanupT); ok {
