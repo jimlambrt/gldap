@@ -2,6 +2,7 @@ package gldap_test
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"sync"
 	"testing"
@@ -167,10 +168,18 @@ func TestServer_shutdownCtx(t *testing.T) {
 		td := testdirectory.Start(fakeT, testdirectory.WithDefaults(t, &testdirectory.Defaults{AllowAnonymousBind: true}))
 		time.Sleep(1 * time.Second) // allow time so the test directory will start up.
 		go func() {
-			client := td.Conn()
-			defer client.Close()
+			certpool := x509.NewCertPool()
+			certpool.AppendCertsFromPEM([]byte(td.Cert()))
+			tlsConfig := &tls.Config{
+				RootCAs: certpool,
+			}
+			conn, err := ldap.DialURL(fmt.Sprintf("ldaps://localhost:%d", td.Port()), ldap.DialWithTLSConfig(tlsConfig))
+			if err != nil {
+				return
+			}
+			defer conn.Close()
 			for {
-				err := client.UnauthenticatedBind("alice")
+				err := conn.UnauthenticatedBind("alice")
 				if err != nil {
 					return
 				}
