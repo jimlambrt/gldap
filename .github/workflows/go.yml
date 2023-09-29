@@ -35,7 +35,7 @@ jobs:
 
       - name: Test
         run: |
-          go test ./...
+          go test ./... -race
 
       - name: govulncheck 
         uses: golang/govulncheck-action@v1
