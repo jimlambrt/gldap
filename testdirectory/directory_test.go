@@ -157,6 +157,7 @@ func testSafeBuf(t *testing.T) *safeBuf {
 		buf: &strings.Builder{},
 	}
 }
+
 func (w *safeBuf) Write(p []byte) (n int, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()

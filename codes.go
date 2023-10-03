@@ -1,6 +1,6 @@
 package gldap
 
-//  ldap result codes
+// ldap result codes
 const (
 	ResultSuccess                            = 0
 	ResultOperationsError                    = 1
@@ -154,7 +154,7 @@ var ResultCodeMap = map[uint16]string{
 	ResultAuthorizationDenied:                "Authorization Denied",
 }
 
-//  ldap application codes
+// ldap application codes
 const (
 	ApplicationBindRequest           = 0
 	ApplicationBindResponse          = 1

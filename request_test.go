@@ -349,7 +349,6 @@ func TestConvertString(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-
 			assert, require := assert.New(t), require.New(t)
 
 			got, err := ConvertString(tc.encodedStrings...)
