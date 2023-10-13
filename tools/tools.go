@@ -1,3 +1,6 @@
+// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
 //go:build tools
 // +build tools
 

@@ -1,3 +1,6 @@
+// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
 package gldap
 
 import ber "github.com/go-asn1-ber/asn1-ber"
