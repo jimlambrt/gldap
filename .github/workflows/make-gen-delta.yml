@@ -34,7 +34,7 @@ jobs:
           make tools
       - name: Running make fmt
         run: |
-          make fmt
+          make gen
       - name: Check for changes
         run: |
           git diff --exit-code
