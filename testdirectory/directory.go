@@ -157,7 +157,9 @@ func Start(t TestingT, opt ...Option) *Directory {
 	}
 	go func() {
 		err := d.s.Run(fmt.Sprintf("%s:%d", opts.withHost, opts.withPort), connOpts...)
-		require.NoError(err)
+		if err != nil {
+			d.logger.Error("Error during shutdown", "op", "testdirectory.Start", "err", err.Error())
+		}
 	}()
 
 	if v, ok := interface{}(t).(CleanupT); ok {
