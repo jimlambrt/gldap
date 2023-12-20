@@ -241,9 +241,6 @@ func (r *SearchResponseEntry) packet() *packet {
 	}
 	resultPacket.AppendChild(attributesPacket)
 
-	// Add optional diagnostic message and matched DN
-	addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
-
 	replyPacket.AppendChild(resultPacket)
 	return &packet{Packet: replyPacket}
 }
