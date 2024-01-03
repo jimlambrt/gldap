@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        go: ["1.21", "1.20", "1.19"]
+        go: ["1.21", "1.20"]
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
 
@@ -41,7 +41,6 @@ jobs:
         uses: golang/govulncheck-action@v1
 
       - name: Coverage
-        if: ${{ matrix.go != '1.19' }}
         run: |
           make coverage-diff
 
