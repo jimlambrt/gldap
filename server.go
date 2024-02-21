@@ -110,7 +110,9 @@ func validateAddr(addr string) (string, error) {
 	}
 
 	// see if we're dealing with a hostname
-	hostnames, _ := net.LookupHost(rawHost)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	hostnames, _ := net.DefaultResolver.LookupHost(ctx, rawHost)
 	if len(hostnames) > 0 {
 		if rawHost == "::1" {
 			// special case for localhost

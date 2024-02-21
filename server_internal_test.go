@@ -151,6 +151,11 @@ func TestValidateAddr(t *testing.T) {
 			expected: "2001:db8:3333:4444:5555:6666:7777:8888:389",
 		},
 		{
+			name:     "valid-IPv6-literal",
+			addr:     "[2001:db8:3333:4444:5555:6666:7777:8888]:389",
+			expected: "[2001:db8:3333:4444:5555:6666:7777:8888]:389",
+		},
+		{
 			name:     "valid-IPv6-localhost-without-brackets",
 			addr:     "::1:389",
 			expected: "[::1]:389",
