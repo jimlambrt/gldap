@@ -87,13 +87,13 @@
 				
 				<option value="file15">github.com/jimlambrt/gldap/route_options.go (100.0%)</option>
 				
-				<option value="file16">github.com/jimlambrt/gldap/server.go (89.0%)</option>
+				<option value="file16">github.com/jimlambrt/gldap/server.go (87.8%)</option>
 				
 				<option value="file17">github.com/jimlambrt/gldap/server_options.go (100.0%)</option>
 				
 				<option value="file18">github.com/jimlambrt/gldap/sid.go (76.7%)</option>
 				
-				<option value="file19">github.com/jimlambrt/gldap/testdirectory/directory.go (84.3%)</option>
+				<option value="file19">github.com/jimlambrt/gldap/testdirectory/directory.go (84.1%)</option>
 				
 				<option value="file20">github.com/jimlambrt/gldap/testdirectory/options.go (100.0%)</option>
 				
@@ -115,7 +115,10 @@
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">package gldap
+		<pre class="file" id="file0" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "fmt"
@@ -195,7 +198,10 @@ func decodeAttribute(berPacket *ber.Packet) (*Attribute, error) <span class="cov
 }
 </pre>
 		
-		<pre class="file" id="file1" style="display: none">package gldap
+		<pre class="file" id="file1" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "bufio"
@@ -409,7 +415,10 @@ func (c *conn) close() error <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file2" style="display: none">package gldap
+		<pre class="file" id="file2" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "fmt"
@@ -1180,7 +1189,10 @@ func addControlDescriptions(packet *ber.Packet) error <span class="cov8" title="
 }
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package gldap
+		<pre class="file" id="file3" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 type controlOptions struct {
         withGrace        int
@@ -1272,7 +1284,10 @@ func withTestToString(s string) Option <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file4" style="display: none">package gldap
+		<pre class="file" id="file4" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "fmt"
@@ -1387,7 +1402,10 @@ func (e *EntryAttribute) encode() *ber.Packet <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package gldap
+		<pre class="file" id="file5" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "fmt"
@@ -1624,7 +1642,10 @@ func newMessage(p *packet) (Message, error) <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">package gldap
+		<pre class="file" id="file6" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import ber "github.com/go-asn1-ber/asn1-ber"
 
@@ -1682,7 +1703,10 @@ func withTag(t ber.Tag) Option <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file7" style="display: none">package gldap
+		<pre class="file" id="file7" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import ber "github.com/go-asn1-ber/asn1-ber"
 
@@ -1737,7 +1761,10 @@ func (p *PartialAttribute) encode() *ber.Packet <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file8" style="display: none">package gldap
+		<pre class="file" id="file8" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "fmt"
@@ -1976,7 +2003,10 @@ func (m *Mux) serve(w *ResponseWriter, req *Request) <span class="cov8" title="1
 }
 </pre>
 		
-		<pre class="file" id="file9" style="display: none">package gldap
+		<pre class="file" id="file9" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "io"
@@ -2035,7 +2065,10 @@ func isNil(i interface{}) bool <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file10" style="display: none">package gldap
+		<pre class="file" id="file10" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "fmt"
@@ -2694,7 +2727,10 @@ var tagMap = map[ber.Tag]string{
 }
 </pre>
 		
-		<pre class="file" id="file11" style="display: none">package gldap
+		<pre class="file" id="file11" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "crypto/tls"
@@ -3070,7 +3106,10 @@ func intPtr(i int) *int <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file12" style="display: none">package gldap
+		<pre class="file" id="file12" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "bufio"
@@ -3310,9 +3349,6 @@ func (r *SearchResponseEntry) packet() *packet <span class="cov8" title="1">{
         }</span>
         <span class="cov8" title="1">resultPacket.AppendChild(attributesPacket)
 
-        // Add optional diagnostic message and matched DN
-        addOptionalResponseChildren(resultPacket, WithDiagnosticMessage(r.diagMessage), WithMatchedDN(r.matchedDN))
-
         replyPacket.AppendChild(resultPacket)
         return &amp;packet{Packet: replyPacket}</span>
 }
@@ -3323,7 +3359,10 @@ type ModifyResponse struct {
 }
 </pre>
 		
-		<pre class="file" id="file13" style="display: none">package gldap
+		<pre class="file" id="file13" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 type responseOptions struct {
         withDiagnosticMessage string
@@ -3397,7 +3436,10 @@ func WithAttributes(attributes map[string][]string) Option <span class="cov8" ti
 }
 </pre>
 		
-		<pre class="file" id="file14" style="display: none">package gldap
+		<pre class="file" id="file14" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "strings"
@@ -3591,7 +3633,10 @@ func (r *searchRoute) match(req *Request) bool <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file15" style="display: none">package gldap
+		<pre class="file" id="file15" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 type routeOptions struct {
         withLabel  string
@@ -3647,7 +3692,10 @@ func WithScope(s Scope) Option <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file16" style="display: none">package gldap
+		<pre class="file" id="file16" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "context"
@@ -3710,6 +3758,75 @@ func NewServer(opt ...Option) (*Server, error) <span class="cov8" title="1">{
         }, nil</span>
 }
 
+// Index of rightmost occurrence of b in s.
+func last(s string, b byte) int <span class="cov8" title="1">{
+        i := len(s)
+        for i--; i &gt;= 0; i-- </span><span class="cov8" title="1">{
+                if s[i] == b </span><span class="cov8" title="1">{
+                        break</span>
+                }
+        }
+        <span class="cov8" title="1">return i</span>
+}
+
+// validateAddr will not only validate the addr, but if it's an ipv6 literal without
+// proper brackets, it will add them.
+func validateAddr(addr string) (string, error) <span class="cov8" title="1">{
+        const op = "gldap.parseAddr"
+
+        lastColon := last(addr, ':')
+        if lastColon &lt; 0 </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
+        }</span>
+        <span class="cov8" title="1">rawHost := addr[0:lastColon]
+        rawPort := addr[lastColon+1:]
+        if len(rawPort) == 0 </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
+        }</span>
+        <span class="cov8" title="1">if len(rawHost) == 0 </span><span class="cov8" title="1">{
+                return fmt.Sprintf(":%s", rawPort), nil
+        }</span>
+        // ipv6 literal with proper brackets
+        <span class="cov8" title="1">if rawHost[0] == '[' </span><span class="cov8" title="1">{
+                // Expect the first ']' just before the last ':'.
+                end := strings.IndexByte(rawHost, ']')
+                if end &lt; 0 </span><span class="cov8" title="1">{
+                        return "", fmt.Errorf("%s: missing ']' in ipv6 address %s : %w", op, addr, ErrInvalidParameter)
+                }</span>
+                <span class="cov8" title="1">trimedIp := strings.Trim(rawHost, "[]")
+                if net.ParseIP(trimedIp) == nil </span><span class="cov0" title="0">{
+                        return "", fmt.Errorf("%s: invalid ipv6 address %s : %w", op, rawHost, ErrInvalidParameter)
+                }</span>
+                // ipv6 literal has enclosing brackets, and it's a valid ipv6 address, so we're good
+                <span class="cov8" title="1">return fmt.Sprintf("%s:%s", rawHost, rawPort), nil</span>
+        }
+
+        // see if we're dealing with a hostname
+        <span class="cov8" title="1">hostnames, _ := net.LookupHost(rawHost)
+        if len(hostnames) &gt; 0 </span><span class="cov8" title="1">{
+                if rawHost == "::1" </span><span class="cov8" title="1">{
+                        // special case for localhost
+                        return fmt.Sprintf("[%s]:%s", rawHost, rawPort), nil
+                }</span>
+                <span class="cov8" title="1">return fmt.Sprintf("%s:%s", rawHost, rawPort), nil</span>
+        }
+
+        <span class="cov8" title="1">lastColon = last(rawHost, ':')
+        if lastColon &gt;= 0 </span><span class="cov8" title="1">{
+                // ipv6 literal without proper brackets
+                ipv6Literal := fmt.Sprintf("[%s]", rawHost)
+                if net.ParseIP(ipv6Literal) == nil </span><span class="cov8" title="1">{
+                        return "", fmt.Errorf("%s: invalid ipv6 address + port %s : %w", op, addr, ErrInvalidParameter)
+                }</span>
+                <span class="cov0" title="0">return fmt.Sprintf("[%s]:%s", ipv6Literal, rawPort), nil</span>
+        }
+        // ipv4
+        <span class="cov0" title="0">if net.ParseIP(rawHost) == nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("%s: invalid IP address %s : %w", op, rawHost, ErrInvalidParameter)
+        }</span>
+        <span class="cov0" title="0">return fmt.Sprintf("%s:%s", rawHost, rawPort), nil</span>
+}
+
 // Run will run the server which will listen and serve requests.
 //
 // Options supported: WithTLSConfig
@@ -3718,7 +3835,11 @@ func (s *Server) Run(addr string, opt ...Option) error <span class="cov8" title=
         opts := getConfigOpts(opt...)
 
         var err error
-        s.mu.Lock()
+        addr, err = validateAddr(addr)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("%s: %w", op, err)
+        }</span>
+        <span class="cov8" title="1">s.mu.Lock()
         s.listener, err = net.Listen("tcp", addr)
         s.listenerReady = true
         s.mu.Unlock()
@@ -3855,7 +3976,10 @@ func (s *Server) Router(r *Mux) error <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file17" style="display: none">package gldap
+		<pre class="file" id="file17" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "crypto/tls"
@@ -3950,7 +4074,10 @@ func WithOnClose(handler OnCloseHandler) Option <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file18" style="display: none">package gldap
+		<pre class="file" id="file18" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "bytes"
@@ -4013,7 +4140,10 @@ func SIDBytesToString(b []byte) (string, error) <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file19" style="display: none">package testdirectory
+		<pre class="file" id="file19" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package testdirectory
 
 import (
         "bytes"
@@ -4169,8 +4299,10 @@ func Start(t TestingT, opt ...Option) *Directory <span class="cov8" title="1">{
         }</span>
         <span class="cov8" title="1">go func() </span><span class="cov8" title="1">{
                 err := d.s.Run(fmt.Sprintf("%s:%d", opts.withHost, opts.withPort), connOpts...)
-                require.NoError(err)
-        }</span>()
+                if err != nil </span><span class="cov0" title="0">{
+                        d.logger.Error("Error during shutdown", "op", "testdirectory.Start", "err", err.Error())
+                }</span>
+        }()
 
         <span class="cov8" title="1">if v, ok := interface{}(t).(CleanupT); ok </span><span class="cov8" title="1">{
                 v.Cleanup(func() </span><span class="cov8" title="1">{ _ = d.s.Stop() }</span>)
@@ -4928,7 +5060,10 @@ func (d *Directory) logSearchRequest(m *gldap.SearchMessage) <span class="cov8" 
 }</span>
 </pre>
 		
-		<pre class="file" id="file20" style="display: none">package testdirectory
+		<pre class="file" id="file20" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package testdirectory
 
 import (
         "strings"
@@ -5153,7 +5288,10 @@ func WithDisablePanicRecovery(t TestingT, disable bool) Option <span class="cov8
 }
 </pre>
 		
-		<pre class="file" id="file21" style="display: none">package testdirectory
+		<pre class="file" id="file21" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package testdirectory
 
 import (
         "bytes"
@@ -5407,7 +5545,10 @@ func genSerialNumber(t TestingT) *big.Int <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file22" style="display: none">package testdirectory
+		<pre class="file" id="file22" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package testdirectory
 
 import (
         "errors"
@@ -5470,7 +5611,10 @@ func (l *Logger) Log(i ...interface{}) <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file23" style="display: none">package gldap
+		<pre class="file" id="file23" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
+package gldap
 
 import (
         "net"
@@ -5733,6 +5877,7 @@ func testSafeBuf(t *testing.T) *safeBuf <span class="cov8" title="1">{
                 buf: &amp;strings.Builder{},
         }
 }</span>
+
 func (w *safeBuf) Write(p []byte) (n int, err error) <span class="cov8" title="1">{
         w.mu.Lock()
         defer w.mu.Unlock()
