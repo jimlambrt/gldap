@@ -86,11 +86,13 @@ func validateAddr(addr string) (string, error) {
 	}
 	rawHost := addr[0:lastColon]
 	rawPort := addr[lastColon+1:]
-	if len(rawPort) == 0 {
+	switch {
+	case len(rawPort) == 0:
 		return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
-	}
-	if len(rawHost) == 0 {
+	case len(rawHost) == 0:
 		return fmt.Sprintf(":%s", rawPort), nil
+	case addr[0] == '[' && addr[len(addr)-1] == ']':
+		return "", fmt.Errorf("%s: missing port in ipv6 addr : %s : %w", op, addr, ErrInvalidParameter)
 	}
 	// ipv6 literal with proper brackets
 	if rawHost[0] == '[' {
@@ -99,8 +101,8 @@ func validateAddr(addr string) (string, error) {
 		if end < 0 {
 			return "", fmt.Errorf("%s: missing ']' in ipv6 address %s : %w", op, addr, ErrInvalidParameter)
 		}
-		trimedIp := strings.Trim(rawHost, "[]")
-		if net.ParseIP(trimedIp) == nil {
+		trimmedIp := strings.Trim(rawHost, "[]")
+		if net.ParseIP(trimmedIp) == nil {
 			return "", fmt.Errorf("%s: invalid ipv6 address %s : %w", op, rawHost, ErrInvalidParameter)
 		}
 		// ipv6 literal has enclosing brackets, and it's a valid ipv6 address, so we're good

@@ -167,7 +167,7 @@ func TestValidateAddr(t *testing.T) {
 			wantErrIs:       ErrInvalidParameter,
 		},
 		{
-			name:            "missing-port -pv4",
+			name:            "missing-port-ipv4",
 			addr:            "127.0.0.1",
 			wantErrContains: "missing port in addr",
 			wantErrIs:       ErrInvalidParameter,
@@ -175,7 +175,7 @@ func TestValidateAddr(t *testing.T) {
 		{
 			name:            "err-missing-port-ipv6",
 			addr:            "[::1]",
-			wantErrContains: "missing ']' in ipv6 address [::1]",
+			wantErrContains: "missing port in ipv6 addr : [::1]",
 			wantErrIs:       ErrInvalidParameter,
 		},
 		{
@@ -185,7 +185,13 @@ func TestValidateAddr(t *testing.T) {
 			wantErrIs:       ErrInvalidParameter,
 		},
 		{
-			name:            "err-invalid-IPv6-address-missing-bracket",
+			name:            "err-invalid-IPv6-address-missing-start-bracket",
+			addr:            "::1]",
+			wantErrContains: "invalid ipv6 address + port ::1]",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "err-invalid-IPv6-address-missing-final-bracket",
 			addr:            "[::1",
 			wantErrContains: "missing ']' in ipv6 address [::1",
 			wantErrIs:       ErrInvalidParameter,
