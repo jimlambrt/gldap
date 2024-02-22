@@ -64,6 +64,79 @@ func NewServer(opt ...Option) (*Server, error) {
 	}, nil
 }
 
+// Index of rightmost occurrence of b in s.
+func last(s string, b byte) int {
+	i := len(s)
+	for i--; i >= 0; i-- {
+		if s[i] == b {
+			break
+		}
+	}
+	return i
+}
+
+// validateAddr will not only validate the addr, but if it's an ipv6 literal without
+// proper brackets, it will add them.
+func validateAddr(addr string) (string, error) {
+	const op = "gldap.parseAddr"
+
+	lastColon := last(addr, ':')
+	if lastColon < 0 {
+		return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
+	}
+	rawHost := addr[0:lastColon]
+	rawPort := addr[lastColon+1:]
+	switch {
+	case len(rawPort) == 0:
+		return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
+	case len(rawHost) == 0:
+		return fmt.Sprintf(":%s", rawPort), nil
+	case addr[0] == '[' && addr[len(addr)-1] == ']':
+		return "", fmt.Errorf("%s: missing port in ipv6 addr : %s : %w", op, addr, ErrInvalidParameter)
+	}
+	// ipv6 literal with proper brackets
+	if rawHost[0] == '[' {
+		// Expect the first ']' just before the last ':'.
+		end := strings.IndexByte(rawHost, ']')
+		if end < 0 {
+			return "", fmt.Errorf("%s: missing ']' in ipv6 address %s : %w", op, addr, ErrInvalidParameter)
+		}
+		trimmedIp := strings.Trim(rawHost, "[]")
+		if net.ParseIP(trimmedIp) == nil {
+			return "", fmt.Errorf("%s: invalid ipv6 address %s : %w", op, rawHost, ErrInvalidParameter)
+		}
+		// ipv6 literal has enclosing brackets, and it's a valid ipv6 address, so we're good
+		return fmt.Sprintf("%s:%s", rawHost, rawPort), nil
+	}
+
+	// see if we're dealing with a hostname
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	hostnames, _ := net.DefaultResolver.LookupHost(ctx, rawHost)
+	if len(hostnames) > 0 {
+		if rawHost == "::1" {
+			// special case for localhost
+			return fmt.Sprintf("[%s]:%s", rawHost, rawPort), nil
+		}
+		return fmt.Sprintf("%s:%s", rawHost, rawPort), nil
+	}
+
+	lastColon = last(rawHost, ':')
+	if lastColon >= 0 {
+		// ipv6 literal without proper brackets
+		ipv6Literal := fmt.Sprintf("[%s]", rawHost)
+		if net.ParseIP(ipv6Literal) == nil {
+			return "", fmt.Errorf("%s: invalid ipv6 address + port %s : %w", op, addr, ErrInvalidParameter)
+		}
+		return fmt.Sprintf("[%s]:%s", ipv6Literal, rawPort), nil
+	}
+	// ipv4
+	if net.ParseIP(rawHost) == nil {
+		return "", fmt.Errorf("%s: invalid IP address %s : %w", op, rawHost, ErrInvalidParameter)
+	}
+	return fmt.Sprintf("%s:%s", rawHost, rawPort), nil
+}
+
 // Run will run the server which will listen and serve requests.
 //
 // Options supported: WithTLSConfig
@@ -72,6 +145,10 @@ func (s *Server) Run(addr string, opt ...Option) error {
 	opts := getConfigOpts(opt...)
 
 	var err error
+	addr, err = validateAddr(addr)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	s.mu.Lock()
 	s.listener, err = net.Listen("tcp", addr)
 	s.listenerReady = true

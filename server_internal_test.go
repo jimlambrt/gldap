@@ -126,3 +126,111 @@ type mockListener struct {
 func (*mockListener) Close() error {
 	return errors.New("mockListener.Close error")
 }
+
+func TestValidateAddr(t *testing.T) {
+	tests := []struct {
+		name            string
+		addr            string
+		expected        string
+		wantErrContains string
+		wantErrIs       error
+	}{
+		{
+			name:     "valid-IPv4-address",
+			addr:     "127.0.0.1:389",
+			expected: "127.0.0.1:389",
+		},
+		{
+			name:     "valid-IPv6-address",
+			addr:     "[::1]:389",
+			expected: "[::1]:389",
+		},
+		{
+			name:     "valid-IPv6",
+			addr:     "2001:db8:3333:4444:5555:6666:7777:8888:389",
+			expected: "2001:db8:3333:4444:5555:6666:7777:8888:389",
+		},
+		{
+			name:     "valid-IPv6-literal",
+			addr:     "[2001:db8:3333:4444:5555:6666:7777:8888]:389",
+			expected: "[2001:db8:3333:4444:5555:6666:7777:8888]:389",
+		},
+		{
+			name:     "valid-IPv6-localhost-without-brackets",
+			addr:     "::1:389",
+			expected: "[::1]:389",
+		},
+		{
+			name:     "valid-hostname",
+			addr:     "localhost:389",
+			expected: "localhost:389",
+		},
+		{
+			name:            "err-missing-port-final-colon",
+			addr:            "198.165.1.1:",
+			wantErrContains: "missing port in addr",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "missing-port-ipv4",
+			addr:            "127.0.0.1",
+			wantErrContains: "missing port in addr",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "err-missing-port-ipv6",
+			addr:            "[::1]",
+			wantErrContains: "missing port in ipv6 addr : [::1]",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "err-invalid-IPv4-address",
+			addr:            "0.0",
+			wantErrContains: "missing port in addr 0.0",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "err-invalid-IPv6-address-missing-start-bracket",
+			addr:            "::1]",
+			wantErrContains: "invalid ipv6 address + port ::1]",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "err-invalid-IPv6-address-missing-final-bracket",
+			addr:            "[::1",
+			wantErrContains: "missing ']' in ipv6 address [::1",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "err-invalid-IPv6",
+			addr:            "2001:db8:3333:4444:5555:6666:7777:389",
+			wantErrContains: "invalid ipv6 address + port 2001:db8:3333:4444:5555:6666:7777:389",
+			wantErrIs:       ErrInvalidParameter,
+		},
+		{
+			name:            "err-missing-port",
+			addr:            "invalid",
+			expected:        "",
+			wantErrContains: "missing port in addr invalid",
+			wantErrIs:       ErrInvalidParameter,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := validateAddr(tc.addr)
+			if tc.wantErrContains != "" {
+				require.Error(t, err)
+				assert.Empty(t, result)
+				assert.Contains(t, err.Error(), tc.wantErrContains)
+				if tc.wantErrIs != nil {
+					assert.ErrorIs(t, err, tc.wantErrIs)
+				}
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
