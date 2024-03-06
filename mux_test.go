@@ -51,10 +51,7 @@ func TestMux_serve(t *testing.T) {
 	})
 	t.Run("default-route", func(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
-		buf := &safeBuf{
-			mu:  &sync.Mutex{},
-			buf: &strings.Builder{},
-		}
+		buf := testSafeBuf(t)
 		testLogger := hclog.New(&hclog.LoggerOptions{
 			Name:   "TestServer_Run-logger",
 			Level:  hclog.Debug,

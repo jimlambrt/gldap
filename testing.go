@@ -184,6 +184,7 @@ func testAddRequestPacket(t *testing.T, m AddMessage) *packet {
 }
 
 func testRequestEnvelope(t *testing.T, messageID int) *ber.Packet {
+	t.Helper()
 	p := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
 	p.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, int64(messageID), "MessageID"))
 	return p
@@ -253,26 +254,30 @@ func TestEncodeString(t *testing.T, tag ber.Tag, s string, opt ...Option) string
 }
 
 type safeBuf struct {
+	t   *testing.T
 	buf *strings.Builder
-	mu  *sync.Mutex
+	mu  *sync.RWMutex
 }
 
 func testSafeBuf(t *testing.T) *safeBuf {
 	t.Helper()
 	return &safeBuf{
-		mu:  &sync.Mutex{},
+		t:   t,
+		mu:  &sync.RWMutex{},
 		buf: &strings.Builder{},
 	}
 }
 
 func (w *safeBuf) Write(p []byte) (n int, err error) {
+	w.t.Helper()
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.buf.Write(p)
 }
 
 func (w *safeBuf) String() string {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.t.Helper()
+	w.mu.RLock()
+	defer w.mu.RUnlock()
 	return w.buf.String()
 }
