@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 	"sync"
 	"time"
@@ -75,35 +76,37 @@ func last(s string, b byte) int {
 	return i
 }
 
-// validateAddr will not only validate the addr, but if it's an ipv6 literal without
-// proper brackets, it will add them.
-func validateAddr(addr string) (string, error) {
+// validateAddrPort will not only validate the address+port, but if it's an ipv6
+// literal without proper brackets, it will add them.
+func validateAddrPort(addrPort string) (string, error) {
 	const op = "gldap.parseAddr"
 
-	lastColon := last(addr, ':')
+	lastColon := last(addrPort, ':')
 	if lastColon < 0 {
-		return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
+		return "", fmt.Errorf("%s: missing port in addr \"%s\": %w", op, addrPort, ErrInvalidParameter)
 	}
-	rawHost := addr[0:lastColon]
-	rawPort := addr[lastColon+1:]
+	rawHost := addrPort[0:lastColon]
+	rawPort := addrPort[lastColon+1:]
 	switch {
 	case len(rawPort) == 0:
-		return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
+		return "", fmt.Errorf("%s: missing port in addr \"%s\": %w", op, addrPort, ErrInvalidParameter)
 	case len(rawHost) == 0:
 		return fmt.Sprintf(":%s", rawPort), nil
-	case addr[0] == '[' && addr[len(addr)-1] == ']':
-		return "", fmt.Errorf("%s: missing port in ipv6 addr : %s : %w", op, addr, ErrInvalidParameter)
+	case addrPort[0] == '[' && addrPort[len(addrPort)-1] == ']':
+		return "", fmt.Errorf("%s: missing port in ipv6 addr : \"%s\": %w", op, addrPort, ErrInvalidParameter)
 	}
 	// ipv6 literal with proper brackets
 	if rawHost[0] == '[' {
 		// Expect the first ']' just before the last ':'.
 		end := strings.IndexByte(rawHost, ']')
 		if end < 0 {
-			return "", fmt.Errorf("%s: missing ']' in ipv6 address %s : %w", op, addr, ErrInvalidParameter)
+			return "", fmt.Errorf("%s: missing ']' in ipv6 address \"%s\": %w", op, addrPort, ErrInvalidParameter)
 		}
+		// Note: netip.ParseAddr requires ipv6 addresses without brackets []
 		trimmedIp := strings.Trim(rawHost, "[]")
-		if net.ParseIP(trimmedIp) == nil {
-			return "", fmt.Errorf("%s: invalid ipv6 address %s : %w", op, rawHost, ErrInvalidParameter)
+		if _, err := netip.ParseAddr(trimmedIp); err != nil {
+			// if net.ParseIP(trimmedIp) == nil {
+			return "", fmt.Errorf("%s: invalid ipv6 address \"%s\": %w", op, rawHost, err)
 		}
 		// ipv6 literal has enclosing brackets, and it's a valid ipv6 address, so we're good
 		return fmt.Sprintf("%s:%s", rawHost, rawPort), nil
@@ -123,16 +126,16 @@ func validateAddr(addr string) (string, error) {
 
 	lastColon = last(rawHost, ':')
 	if lastColon >= 0 {
-		// ipv6 literal without proper brackets
-		ipv6Literal := fmt.Sprintf("[%s]", rawHost)
-		if net.ParseIP(ipv6Literal) == nil {
-			return "", fmt.Errorf("%s: invalid ipv6 address + port %s : %w", op, addr, ErrInvalidParameter)
+		// ipv6 literal without proper brackets.  Note: netip.ParseAddr requires
+		// ipv6 addresses without brackets []
+		if _, err := netip.ParseAddr(rawHost); err != nil {
+			return "", fmt.Errorf("%s: invalid ipv6 address + port \"%s\": %w", op, addrPort, err)
 		}
-		return fmt.Sprintf("[%s]:%s", ipv6Literal, rawPort), nil
+		return fmt.Sprintf("[%s]:%s", rawHost, rawPort), nil
 	}
 	// ipv4
 	if net.ParseIP(rawHost) == nil {
-		return "", fmt.Errorf("%s: invalid IP address %s : %w", op, rawHost, ErrInvalidParameter)
+		return "", fmt.Errorf("%s: invalid IP address \"%s\": %w", op, rawHost, ErrInvalidParameter)
 	}
 	return fmt.Sprintf("%s:%s", rawHost, rawPort), nil
 }
@@ -145,7 +148,7 @@ func (s *Server) Run(addr string, opt ...Option) error {
 	opts := getConfigOpts(opt...)
 
 	var err error
-	addr, err = validateAddr(addr)
+	addr, err = validateAddrPort(addr)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
