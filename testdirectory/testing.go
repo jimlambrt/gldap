@@ -157,8 +157,13 @@ func GetTLSConfig(t TestingT, opt ...Option) (s *tls.Config, c *tls.Config) {
 	opts := getOpts(t, opt...)
 
 	var ipAddrs []net.IP
-	if hostIp := net.ParseIP(opts.withHost); hostIp != nil {
-		ipAddrs = append(ipAddrs, hostIp)
+	switch {
+	case opts.withHost == "localhost":
+		ipAddrs = append(ipAddrs, net.IPv4(127, 0, 0, 1))
+	default:
+		if hostIp := net.ParseIP(opts.withHost); hostIp != nil {
+			ipAddrs = append(ipAddrs, hostIp)
+		}
 	}
 
 	cert := &x509.Certificate{
