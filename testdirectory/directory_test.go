@@ -146,6 +146,25 @@ func Test_Start(t *testing.T) {
 		// not sure there's anything that's assertable here...
 		_ = testdirectory.Start(t, testdirectory.WithDisablePanicRecovery(t, true))
 	})
+	t.Run("start-with-ipv6-localhost", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+		port := testdirectory.FreePort(t)
+		td := testdirectory.Start(
+			t,
+			testdirectory.WithPort(t, port),
+			testdirectory.WithHost(t, "::"),
+			testdirectory.WithDefaults(t, &testdirectory.Defaults{Users: testEntries}),
+			testdirectory.WithLogger(t, testLogger),
+			testdirectory.WithNoTLS(t),
+		)
+		assert.Equal(port, td.Port())
+
+		c := td.Conn()
+		defer c.Close()
+
+		err := c.Bind(userDN, testPwd)
+		require.NoError(err)
+	})
 }
 
 type safeBuf struct {
@@ -723,4 +742,8 @@ func TestDirectory_DeleteResponse(t *testing.T) {
 			assert.Contains(err.Error(), `LDAP Result Code 32 "No Such Object"`)
 		})
 	}
+}
+
+func Test_Directory_Start(t *testing.T) {
+	t.Parallel()
 }

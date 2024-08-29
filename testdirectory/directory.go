@@ -99,6 +99,10 @@ func Start(t TestingT, opt ...Option) *Directory {
 	if opts.withPort == 0 {
 		opts.withPort = FreePort(t)
 	}
+	// Handle IPv6 addresses
+	if strings.Contains(opts.withHost, ":") && !strings.ContainsAny(opts.withHost, "[]") {
+		opts.withHost = "[" + opts.withHost + "]"
+	}
 
 	d := &Directory{
 		t:                  t,
