@@ -24,8 +24,14 @@ func main() {
 	// a very simple way to track authenticated connections
 	authenticatedConnections := map[int]struct{}{}
 
+	// a gldap.OnClose function to clean up connections from the
+	// authenticatedConnections map when they are closed
+	onCloseFn := func(connId int) {
+		delete(authenticatedConnections, connId)
+		log.Printf("connection %d closed", connId)
+	}
 	// create a new server
-	s, err := gldap.NewServer(gldap.WithLogger(l), gldap.WithDisablePanicRecovery())
+	s, err := gldap.NewServer(gldap.WithLogger(l), gldap.WithDisablePanicRecovery(), gldap.WithOnClose(onCloseFn))
 	if err != nil {
 		log.Fatalf("unable to create server: %s", err.Error())
 	}
