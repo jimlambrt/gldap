@@ -459,6 +459,73 @@ func TestModifyRoute_match(t *testing.T) {
 	}
 }
 
+func TestAbandonRoute_match(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		route     *abandonRoute
+		req       *Request
+		wantMatch bool
+	}{
+		{
+			name: "req-nil",
+			route: &abandonRoute{
+				baseRoute: &baseRoute{
+					routeOp: abandonRouteOperation,
+				},
+			},
+		},
+		{
+			name: "op-mismatched",
+			route: &abandonRoute{
+				baseRoute: &baseRoute{
+					routeOp: abandonRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: searchRouteOperation,
+			},
+		},
+		{
+			name: "not-an-abandon-op-msg",
+			route: &abandonRoute{
+				baseRoute: &baseRoute{
+					routeOp: abandonRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: abandonRouteOperation,
+				message: &SearchMessage{},
+			},
+		},
+		{
+			name: "success",
+			route: &abandonRoute{
+				baseRoute: &baseRoute{
+					routeOp: abandonRouteOperation,
+				},
+			},
+			req: &Request{
+				routeOp: abandonRouteOperation,
+				message: &AbandonMessage{},
+			},
+			wantMatch: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+			match := tc.route.match(tc.req)
+			switch tc.wantMatch {
+			case true:
+				assert.True(match)
+			case false:
+				assert.False(match)
+			}
+		})
+	}
+}
+
 func TestBaseRoute_match(t *testing.T) {
 	t.Run("always-fail", func(t *testing.T) {
 		r := baseRoute{}

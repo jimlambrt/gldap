@@ -237,6 +237,39 @@ func Test_newRequest(t *testing.T) {
 			wantErr:         true,
 			wantErrContains: "unable to build message for request",
 		},
+		{
+			name:      "valid-abandon",
+			requestID: 1,
+			conn:      &conn{},
+			packet: testAbandonRequestPacket(t,
+				AbandonMessage{
+					baseMessage: baseMessage{id: 2},
+					MessageID:   1,
+					Controls: []Control{
+						testControlString(t, "generic-control", WithControlValue("generic-value")),
+					},
+				},
+			),
+			wantMsg: &AbandonMessage{
+				baseMessage: baseMessage{id: 2},
+				MessageID:   1,
+				Controls: []Control{
+					testControlString(t, "generic-control", WithControlValue("generic-value")),
+				},
+			},
+		},
+		{
+			name:      "invalid-abandon",
+			requestID: 1,
+			conn:      &conn{},
+			packet: func() *packet {
+				envelope := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
+				envelope.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, int64(1), "MessageID"))
+				return &packet{Packet: envelope}
+			}(),
+			wantErr:         true,
+			wantErrContains: "unable to build message for request",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -301,6 +334,26 @@ func TestRequest_GetDeleteMessage(t *testing.T) {
 			assert.NotNil(m)
 		})
 	}
+}
+
+func TestRequest_GetAbandonMessage(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		assert := assert.New(t)
+		r := &Request{message: &AbandonMessage{}}
+		m, err := r.GetAbandonMessage()
+		assert.NotNil(m)
+		assert.NoError(err)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+		r := &Request{}
+		m, err := r.GetAbandonMessage()
+		assert.Nil(m)
+		require.Error(err)
+		assert.ErrorIs(err, ErrInvalidParameter)
+		assert.Contains(err.Error(), "not an abandon request")
+	})
 }
 
 func TestRequest_GetConnectionID(t *testing.T) {
