@@ -65,43 +65,45 @@
 				
 				<option value="file4">github.com/jimlambrt/gldap/entry.go (100.0%)</option>
 				
-				<option value="file5">github.com/jimlambrt/gldap/message.go (80.0%)</option>
+				<option value="file5">github.com/jimlambrt/gldap/examples/simple/main.go (0.0%)</option>
 				
-				<option value="file6">github.com/jimlambrt/gldap/message_options.go (81.2%)</option>
+				<option value="file6">github.com/jimlambrt/gldap/message.go (79.5%)</option>
 				
-				<option value="file7">github.com/jimlambrt/gldap/modify.go (100.0%)</option>
+				<option value="file7">github.com/jimlambrt/gldap/message_options.go (81.2%)</option>
 				
-				<option value="file8">github.com/jimlambrt/gldap/mux.go (91.7%)</option>
+				<option value="file8">github.com/jimlambrt/gldap/modify.go (100.0%)</option>
 				
-				<option value="file9">github.com/jimlambrt/gldap/option.go (100.0%)</option>
+				<option value="file9">github.com/jimlambrt/gldap/mux.go (90.7%)</option>
 				
-				<option value="file10">github.com/jimlambrt/gldap/packet.go (76.0%)</option>
+				<option value="file10">github.com/jimlambrt/gldap/option.go (100.0%)</option>
 				
-				<option value="file11">github.com/jimlambrt/gldap/request.go (78.6%)</option>
+				<option value="file11">github.com/jimlambrt/gldap/packet.go (76.2%)</option>
 				
-				<option value="file12">github.com/jimlambrt/gldap/response.go (97.6%)</option>
+				<option value="file12">github.com/jimlambrt/gldap/request.go (79.5%)</option>
 				
-				<option value="file13">github.com/jimlambrt/gldap/response_options.go (100.0%)</option>
+				<option value="file13">github.com/jimlambrt/gldap/response.go (97.6%)</option>
 				
-				<option value="file14">github.com/jimlambrt/gldap/route.go (94.4%)</option>
+				<option value="file14">github.com/jimlambrt/gldap/response_options.go (100.0%)</option>
 				
-				<option value="file15">github.com/jimlambrt/gldap/route_options.go (100.0%)</option>
+				<option value="file15">github.com/jimlambrt/gldap/route.go (95.1%)</option>
 				
-				<option value="file16">github.com/jimlambrt/gldap/server.go (87.8%)</option>
+				<option value="file16">github.com/jimlambrt/gldap/route_options.go (100.0%)</option>
 				
-				<option value="file17">github.com/jimlambrt/gldap/server_options.go (100.0%)</option>
+				<option value="file17">github.com/jimlambrt/gldap/server.go (87.9%)</option>
 				
-				<option value="file18">github.com/jimlambrt/gldap/sid.go (76.7%)</option>
+				<option value="file18">github.com/jimlambrt/gldap/server_options.go (100.0%)</option>
 				
-				<option value="file19">github.com/jimlambrt/gldap/testdirectory/directory.go (84.1%)</option>
+				<option value="file19">github.com/jimlambrt/gldap/sid.go (76.7%)</option>
 				
-				<option value="file20">github.com/jimlambrt/gldap/testdirectory/options.go (100.0%)</option>
+				<option value="file20">github.com/jimlambrt/gldap/testdirectory/directory.go (84.2%)</option>
 				
-				<option value="file21">github.com/jimlambrt/gldap/testdirectory/testing.go (100.0%)</option>
+				<option value="file21">github.com/jimlambrt/gldap/testdirectory/options.go (100.0%)</option>
 				
-				<option value="file22">github.com/jimlambrt/gldap/testdirectory/testingt.go (100.0%)</option>
+				<option value="file22">github.com/jimlambrt/gldap/testdirectory/testing.go (100.0%)</option>
 				
-				<option value="file23">github.com/jimlambrt/gldap/testing.go (96.4%)</option>
+				<option value="file23">github.com/jimlambrt/gldap/testdirectory/testingt.go (100.0%)</option>
+				
+				<option value="file24">github.com/jimlambrt/gldap/testing.go (95.9%)</option>
 				
 				</select>
 			</div>
@@ -1405,6 +1407,134 @@ func (e *EntryAttribute) encode() *ber.Packet <span class="cov8" title="1">{
 		<pre class="file" id="file5" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
+package main
+
+import (
+        "context"
+        "log"
+        "os"
+        "os/signal"
+        "strings"
+
+        "github.com/hashicorp/go-hclog"
+        "github.com/jimlambrt/gldap"
+)
+
+func main() <span class="cov0" title="0">{
+        // turn on debug logging
+        l := hclog.New(&amp;hclog.LoggerOptions{
+                Name:  "simple-bind-logger",
+                Level: hclog.Debug,
+        })
+
+        // a very simple way to track authenticated connections
+        authenticatedConnections := map[int]struct{}{}
+
+        // create a new server
+        s, err := gldap.NewServer(gldap.WithLogger(l), gldap.WithDisablePanicRecovery())
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("unable to create server: %s", err.Error())
+        }</span>
+
+        // create a router and add a bind handler
+        <span class="cov0" title="0">r, err := gldap.NewMux()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("unable to create router: %s", err.Error())
+        }</span>
+        <span class="cov0" title="0">r.Bind(bindHandler(authenticatedConnections))
+        r.Search(searchHandler(authenticatedConnections), gldap.WithLabel("All Searches"))
+        s.Router(r)
+        go s.Run(":10389") // listen on port 10389
+
+        ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+        defer stop()
+        select </span>{
+        case &lt;-ctx.Done():<span class="cov0" title="0">
+                log.Printf("\nstopping directory")
+                s.Stop()</span>
+        }
+}
+
+func bindHandler(authenticatedConnections map[int]struct{}) func(*gldap.ResponseWriter, *gldap.Request) <span class="cov0" title="0">{
+        return func(w *gldap.ResponseWriter, r *gldap.Request) </span><span class="cov0" title="0">{
+                resp := r.NewBindResponse(
+                        gldap.WithResponseCode(gldap.ResultInvalidCredentials),
+                )
+                defer func() </span><span class="cov0" title="0">{
+                        w.Write(resp)
+                }</span>()
+
+                <span class="cov0" title="0">m, err := r.GetSimpleBindMessage()
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Printf("not a simple bind message: %s", err)
+                        return
+                }</span>
+                <span class="cov0" title="0">if m.UserName == "uid=alice" </span><span class="cov0" title="0">{
+                        authenticatedConnections[r.ConnectionID()] = struct{}{} // mark connection as authenticated
+                        resp.SetResultCode(gldap.ResultSuccess)
+                        log.Println("bind success")
+                        return
+                }</span>
+        }
+}
+
+func searchHandler(authenticatedConnections map[int]struct{}) func(w *gldap.ResponseWriter, r *gldap.Request) <span class="cov0" title="0">{
+        return func(w *gldap.ResponseWriter, r *gldap.Request) </span><span class="cov0" title="0">{
+                resp := r.NewSearchDoneResponse(gldap.WithResponseCode(gldap.ResultNoSuchObject))
+                defer func() </span><span class="cov0" title="0">{
+                        w.Write(resp)
+                }</span>()
+                // check if connection is authenticated
+                <span class="cov0" title="0">if _, ok := authenticatedConnections[r.ConnectionID()]; !ok </span><span class="cov0" title="0">{
+                        log.Printf("connection %d is not authorized", r.ConnectionID())
+                        resp.SetResultCode(gldap.ResultAuthorizationDenied)
+                        return
+                }</span>
+                <span class="cov0" title="0">m, err := r.GetSearchMessage()
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Printf("not a search message: %s", err)
+                        return
+                }</span>
+                <span class="cov0" title="0">log.Printf("search base dn: %s", m.BaseDN)
+                log.Printf("search scope: %d", m.Scope)
+                log.Printf("search filter: %s", m.Filter)
+
+                if strings.Contains(m.Filter, "uid=alice") || m.BaseDN == "uid=alice,ou=people,cn=example,dc=org" </span><span class="cov0" title="0">{
+                        entry := r.NewSearchResponseEntry(
+                                "uid=alice,ou=people,cn=example,dc=org",
+                                gldap.WithAttributes(map[string][]string{
+                                        "objectclass": {"top", "person", "organizationalPerson", "inetOrgPerson"},
+                                        "uid":         {"alice"},
+                                        "cn":          {"alice eve smith"},
+                                        "givenname":   {"alice"},
+                                        "sn":          {"smith"},
+                                        "ou":          {"people"},
+                                        "description": {"friend of Rivest, Shamir and Adleman"},
+                                        "password":    {"{SSHA}U3waGJVC7MgXYc0YQe7xv7sSePuTP8zN"},
+                                }),
+                        )
+                        entry.AddAttribute("email", []string{"alice@example.org"})
+                        w.Write(entry)
+                        resp.SetResultCode(gldap.ResultSuccess)
+                }</span>
+                <span class="cov0" title="0">if m.BaseDN == "ou=people,cn=example,dc=org" </span><span class="cov0" title="0">{
+                        entry := r.NewSearchResponseEntry(
+                                "ou=people,cn=example,dc=org",
+                                gldap.WithAttributes(map[string][]string{
+                                        "objectclass": {"organizationalUnit"},
+                                        "ou":          {"people"},
+                                }),
+                        )
+                        w.Write(entry)
+                        resp.SetResultCode(gldap.ResultSuccess)
+                }</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">// Copyright (c) Jim Lambert
+// SPDX-License-Identifier: MIT
+
 package gldap
 
 import (
@@ -1452,6 +1582,7 @@ const (
         addRequestType      requestType = "add"
         deleteRequestType   requestType = "delete"
         unbindRequestType   requestType = "unbind"
+        abandonRequestType  requestType = "abandon"
 )
 
 // Message defines a common interface for all messages
@@ -1518,6 +1649,16 @@ type DeleteMessage struct {
         baseMessage
         // DN identifies the entry being added
         DN string
+
+        // Controls hold optional controls to send with the request
+        Controls []Control
+}
+
+// AbandonMessage is an abandon request message
+type AbandonMessage struct {
+        baseMessage
+        // MessageID is the ID of the message to abandon
+        MessageID int64
 
         // Controls hold optional controls to send with the request
         Controls []Control
@@ -1631,6 +1772,18 @@ func newMessage(p *packet) (Message, error) <span class="cov8" title="1">{
                         DN:       dn,
                         Controls: controls,
                 }, nil</span>
+        case abandonRequestType:<span class="cov8" title="1">
+                id, controls, err := p.abandonParameters()
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, fmt.Errorf("%s: %w", op, err)
+                }</span>
+                <span class="cov8" title="1">return &amp;AbandonMessage{
+                        baseMessage: baseMessage{
+                                id: msgID,
+                        },
+                        MessageID: id,
+                        Controls:  controls,
+                }, nil</span>
         default:<span class="cov0" title="0">
                 return &amp;ExtendedOperationMessage{
                         baseMessage: baseMessage{
@@ -1642,7 +1795,7 @@ func newMessage(p *packet) (Message, error) <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file7" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -1703,7 +1856,7 @@ func withTag(t ber.Tag) Option <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file7" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file8" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -1761,7 +1914,7 @@ func (p *PartialAttribute) encode() *ber.Packet <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file8" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file9" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -1945,6 +2098,25 @@ func (m *Mux) Delete(modifyFn HandlerFunc, opt ...Option) error <span class="cov
         return nil</span>
 }
 
+func (m *Mux) Abandon(abandonFn HandlerFunc, opt ...Option) error <span class="cov8" title="1">{
+        const op = "gldap.(Mux).Abandon"
+        if abandonFn == nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("%s: missing HandlerFunc: %w", op, ErrInvalidParameter)
+        }</span>
+        <span class="cov8" title="1">opts := getRouteOpts(opt...)
+        r := &amp;abandonRoute{
+                baseRoute: &amp;baseRoute{
+                        h:       abandonFn,
+                        routeOp: abandonRouteOperation,
+                        label:   opts.withLabel,
+                },
+        }
+        m.mu.Lock()
+        defer m.mu.Unlock()
+        m.routes = append(m.routes, r)
+        return nil</span>
+}
+
 // DefaultRoute will register a default handler requests which have no other
 // registered handler.
 func (m *Mux) DefaultRoute(noRouteFN HandlerFunc, opt ...Option) error <span class="cov8" title="1">{
@@ -1997,13 +2169,21 @@ func (m *Mux) serve(w *ResponseWriter, req *Request) <span class="cov8" title="1
                 h(w, req)
                 return
         }</span>
+
+        // Do not send a response to an unhandled Abandon request. They must not have
+        // any response.
+        <span class="cov8" title="1">if req.routeOp == abandonRouteOperation </span><span class="cov0" title="0">{
+                w.logger.Warn("no handler for abandon request. ignoring.", "op", op, "connID", w.connID, "requestID", w.requestID)
+                return
+        }</span>
+
         <span class="cov8" title="1">w.logger.Error("no matching handler found for request and returning internal error", "op", op, "connID", w.connID, "requestID", w.requestID, "routeOp", req.routeOp)
         resp := req.NewResponse(WithResponseCode(ResultUnwillingToPerform), WithDiagnosticMessage("No matching handler found"))
         _ = w.Write(resp)</span>
 }
 </pre>
 		
-		<pre class="file" id="file9" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file10" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -2065,7 +2245,7 @@ func isNil(i interface{}) bool <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file10" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file11" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -2201,6 +2381,8 @@ func (p *packet) requestType() (requestType, error) <span class="cov8" title="1"
                 return deleteRequestType, nil</span>
         case ApplicationUnbindRequest:<span class="cov8" title="1">
                 return unbindRequestType, nil</span>
+        case ApplicationAbandonRequest:<span class="cov8" title="1">
+                return abandonRequestType, nil</span>
         default:<span class="cov0" title="0">
                 return unknownRequestType, fmt.Errorf("%s: unhandled request type %d: %w", op, requestPacket.Tag, ErrInternal)</span>
         }
@@ -2609,9 +2791,11 @@ func (p *packet) assertApplicationRequest() error <span class="cov8" title="1">{
         }</span>
         <span class="cov8" title="1">switch chkPacket.TagType </span>{
         case ber.TypePrimitive:<span class="cov8" title="1">
-                if chkPacket.Tag != ApplicationDelRequest &amp;&amp; chkPacket.Tag != ApplicationUnbindRequest </span><span class="cov0" title="0">{
-                        return fmt.Errorf("%s: incorrect type, primitive %q must be a delete request %q or an unbind request %q, but got %q", op, ber.TypePrimitive, ApplicationDelRequest, ApplicationUnbindRequest, chkPacket.Tag)
-                }</span>
+                switch chkPacket.Tag </span>{
+                case ApplicationDelRequest, ApplicationUnbindRequest, ApplicationAbandonRequest:<span class="cov8" title="1"></span>
+                default:<span class="cov0" title="0">
+                        return fmt.Errorf("%s: incorrect type, primitive %q must be a delete (%d), an unbind (%d) or abandon (%d) request, but got %d", op, ber.TypePrimitive, ApplicationDelRequest, ApplicationUnbindRequest, ApplicationAbandonRequest, chkPacket.Tag)</span>
+                }
         case ber.TypeConstructed:<span class="cov8" title="1"></span>
         default:<span class="cov0" title="0">
                 return fmt.Errorf("%s: incorrect type, expected ber.TypeConstructed %q but got %v", op, ber.TypeConstructed, chkPacket.TagType)</span>
@@ -2694,6 +2878,43 @@ func (p *packet) deleteParameters() (string, []Control, error) <span class="cov8
         <span class="cov8" title="1">return dn, controls, nil</span>
 }
 
+func (p *packet) abandonParameters() (int64, []Control, error) <span class="cov8" title="1">{
+        const op = "gldap.(packet).abandonParameters"
+
+        const childMessageID = 0
+
+        requestPacket, err := p.requestPacket()
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, nil, fmt.Errorf("%s: %w", op, err)
+        }</span>
+        <span class="cov8" title="1">if requestPacket.Packet.Tag != ApplicationAbandonRequest </span><span class="cov0" title="0">{
+                return 0, nil, fmt.Errorf("%s: not an abandon request, expected tag %d and got %d: %w", op, ApplicationAbandonRequest, requestPacket.Tag, ErrInvalidParameter)
+        }</span>
+
+        <span class="cov8" title="1">id, err := ber.ParseInt64(requestPacket.Data.Bytes())
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, nil, fmt.Errorf("%s: invalid integer in abandon request: %w", op, ErrInvalidParameter)
+        }</span>
+
+        <span class="cov8" title="1">var controls []Control
+        controlPacket, err := p.controlPacket()
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, nil, fmt.Errorf("%s: %w", op, err)
+        }</span>
+        <span class="cov8" title="1">if controlPacket != nil </span><span class="cov8" title="1">{
+                controls = make([]Control, 0, len(controlPacket.Children))
+                for _, c := range controlPacket.Children </span><span class="cov8" title="1">{
+                        ctrl, err := decodeControl(c)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return 0, nil, fmt.Errorf("%s: %w", op, err)
+                        }</span>
+                        <span class="cov8" title="1">controls = append(controls, ctrl)</span>
+                }
+        }
+
+        <span class="cov8" title="1">return id, controls, nil</span>
+}
+
 var tagMap = map[ber.Tag]string{
         ber.TagEOC:              "EOC (End-of-Content)",
         ber.TagBoolean:          "Boolean",
@@ -2727,7 +2948,7 @@ var tagMap = map[ber.Tag]string{
 }
 </pre>
 		
-		<pre class="file" id="file11" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file12" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -2796,6 +3017,8 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) <span class="cov8"
                 routeOp = addRouteOperation</span>
         case *DeleteMessage:<span class="cov8" title="1">
                 routeOp = deleteRouteOperation</span>
+        case *AbandonMessage:<span class="cov8" title="1">
+                routeOp = abandonRouteOperation</span>
         case *UnbindMessage:<span class="cov8" title="1">
                 routeOp = unbindRouteOperation</span>
         default:<span class="cov0" title="0">
@@ -3001,6 +3224,17 @@ func (r *Request) GetDeleteMessage() (*DeleteMessage, error) <span class="cov8" 
         <span class="cov8" title="1">return m, nil</span>
 }
 
+// GetAbandonMessage retrieves the AbandonMessage from the request, which
+// allows you handle the request based on the message attributes.
+func (r *Request) GetAbandonMessage() (*AbandonMessage, error) <span class="cov8" title="1">{
+        const op = "gldap.(Request).GetAbandonMessage"
+        m, ok := r.message.(*AbandonMessage)
+        if !ok </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("%s: %T not an abandon request: %w", op, r.message, ErrInvalidParameter)
+        }</span>
+        <span class="cov8" title="1">return m, nil</span>
+}
+
 // GetUnbindMessage retrieves the UnbindMessage from the request, which
 // allows you handle the request based on the message attributes.
 func (r *Request) GetUnbindMessage() (*UnbindMessage, error) <span class="cov8" title="1">{
@@ -3106,7 +3340,7 @@ func intPtr(i int) *int <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file12" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file13" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -3359,7 +3593,7 @@ type ModifyResponse struct {
 }
 </pre>
 		
-		<pre class="file" id="file13" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file14" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -3436,7 +3670,7 @@ func WithAttributes(attributes map[string][]string) Option <span class="cov8" ti
 }
 </pre>
 		
-		<pre class="file" id="file14" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file15" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -3469,6 +3703,9 @@ const (
 
         // deleteRouteOperation is a route supporting the delete operation
         deleteRouteOperation routeOperation = "delete"
+
+        // abandonRouteOperation is a route supporting the abandon operation
+        abandonRouteOperation routeOperation = "abandon"
 
         // unbindRouteOperation is a route supporting the unbind operation
         unbindRouteOperation routeOperation = "unbind"
@@ -3538,6 +3775,10 @@ type deleteRoute struct {
         *baseRoute
 }
 
+type abandonRoute struct {
+        *baseRoute
+}
+
 func (r *deleteRoute) match(req *Request) bool <span class="cov8" title="1">{
         if req == nil </span><span class="cov0" title="0">{
                 return false
@@ -3546,6 +3787,19 @@ func (r *deleteRoute) match(req *Request) bool <span class="cov8" title="1">{
                 return false
         }</span>
         <span class="cov8" title="1">if _, ok := req.message.(*DeleteMessage); !ok </span><span class="cov0" title="0">{
+                return false
+        }</span>
+        <span class="cov8" title="1">return true</span>
+}
+
+func (r *abandonRoute) match(req *Request) bool <span class="cov8" title="1">{
+        if req == nil </span><span class="cov8" title="1">{
+                return false
+        }</span>
+        <span class="cov8" title="1">if r.op() != req.routeOp </span><span class="cov8" title="1">{
+                return false
+        }</span>
+        <span class="cov8" title="1">if _, ok := req.message.(*AbandonMessage); !ok </span><span class="cov8" title="1">{
                 return false
         }</span>
         <span class="cov8" title="1">return true</span>
@@ -3633,7 +3887,7 @@ func (r *searchRoute) match(req *Request) bool <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file15" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file16" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -3692,7 +3946,7 @@ func WithScope(s Scope) Option <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file16" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file17" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -3702,6 +3956,7 @@ import (
         "crypto/tls"
         "fmt"
         "net"
+        "net/netip"
         "strings"
         "sync"
         "time"
@@ -3769,40 +4024,46 @@ func last(s string, b byte) int <span class="cov8" title="1">{
         <span class="cov8" title="1">return i</span>
 }
 
-// validateAddr will not only validate the addr, but if it's an ipv6 literal without
-// proper brackets, it will add them.
-func validateAddr(addr string) (string, error) <span class="cov8" title="1">{
+// validateAddrPort will not only validate the address+port, but if it's an ipv6
+// literal without proper brackets, it will add them.
+func validateAddrPort(addrPort string) (string, error) <span class="cov8" title="1">{
         const op = "gldap.parseAddr"
 
-        lastColon := last(addr, ':')
+        lastColon := last(addrPort, ':')
         if lastColon &lt; 0 </span><span class="cov8" title="1">{
-                return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
+                return "", fmt.Errorf("%s: missing port in addr \"%s\": %w", op, addrPort, ErrInvalidParameter)
         }</span>
-        <span class="cov8" title="1">rawHost := addr[0:lastColon]
-        rawPort := addr[lastColon+1:]
-        if len(rawPort) == 0 </span><span class="cov8" title="1">{
-                return "", fmt.Errorf("%s: missing port in addr %s : %w", op, addr, ErrInvalidParameter)
-        }</span>
-        <span class="cov8" title="1">if len(rawHost) == 0 </span><span class="cov8" title="1">{
-                return fmt.Sprintf(":%s", rawPort), nil
-        }</span>
+        <span class="cov8" title="1">rawHost := addrPort[0:lastColon]
+        rawPort := addrPort[lastColon+1:]
+        switch </span>{
+        case len(rawPort) == 0:<span class="cov8" title="1">
+                return "", fmt.Errorf("%s: missing port in addr \"%s\": %w", op, addrPort, ErrInvalidParameter)</span>
+        case len(rawHost) == 0:<span class="cov8" title="1">
+                return fmt.Sprintf(":%s", rawPort), nil</span>
+        case addrPort[0] == '[' &amp;&amp; addrPort[len(addrPort)-1] == ']':<span class="cov8" title="1">
+                return "", fmt.Errorf("%s: missing port in ipv6 addr : \"%s\": %w", op, addrPort, ErrInvalidParameter)</span>
+        }
         // ipv6 literal with proper brackets
         <span class="cov8" title="1">if rawHost[0] == '[' </span><span class="cov8" title="1">{
                 // Expect the first ']' just before the last ':'.
                 end := strings.IndexByte(rawHost, ']')
                 if end &lt; 0 </span><span class="cov8" title="1">{
-                        return "", fmt.Errorf("%s: missing ']' in ipv6 address %s : %w", op, addr, ErrInvalidParameter)
+                        return "", fmt.Errorf("%s: missing ']' in ipv6 address \"%s\": %w", op, addrPort, ErrInvalidParameter)
                 }</span>
-                <span class="cov8" title="1">trimedIp := strings.Trim(rawHost, "[]")
-                if net.ParseIP(trimedIp) == nil </span><span class="cov0" title="0">{
-                        return "", fmt.Errorf("%s: invalid ipv6 address %s : %w", op, rawHost, ErrInvalidParameter)
+                // Note: netip.ParseAddr requires ipv6 addresses without brackets []
+                <span class="cov8" title="1">trimmedIp := strings.Trim(rawHost, "[]")
+                if _, err := netip.ParseAddr(trimmedIp); err != nil </span><span class="cov0" title="0">{
+                        // if net.ParseIP(trimmedIp) == nil {
+                        return "", fmt.Errorf("%s: invalid ipv6 address \"%s\": %w", op, rawHost, err)
                 }</span>
                 // ipv6 literal has enclosing brackets, and it's a valid ipv6 address, so we're good
                 <span class="cov8" title="1">return fmt.Sprintf("%s:%s", rawHost, rawPort), nil</span>
         }
 
         // see if we're dealing with a hostname
-        <span class="cov8" title="1">hostnames, _ := net.LookupHost(rawHost)
+        <span class="cov8" title="1">ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+        defer cancel()
+        hostnames, _ := net.DefaultResolver.LookupHost(ctx, rawHost)
         if len(hostnames) &gt; 0 </span><span class="cov8" title="1">{
                 if rawHost == "::1" </span><span class="cov8" title="1">{
                         // special case for localhost
@@ -3813,16 +4074,16 @@ func validateAddr(addr string) (string, error) <span class="cov8" title="1">{
 
         <span class="cov8" title="1">lastColon = last(rawHost, ':')
         if lastColon &gt;= 0 </span><span class="cov8" title="1">{
-                // ipv6 literal without proper brackets
-                ipv6Literal := fmt.Sprintf("[%s]", rawHost)
-                if net.ParseIP(ipv6Literal) == nil </span><span class="cov8" title="1">{
-                        return "", fmt.Errorf("%s: invalid ipv6 address + port %s : %w", op, addr, ErrInvalidParameter)
+                // ipv6 literal without proper brackets.  Note: netip.ParseAddr requires
+                // ipv6 addresses without brackets []
+                if _, err := netip.ParseAddr(rawHost); err != nil </span><span class="cov8" title="1">{
+                        return "", fmt.Errorf("%s: invalid ipv6 address + port \"%s\": %w", op, addrPort, err)
                 }</span>
-                <span class="cov0" title="0">return fmt.Sprintf("[%s]:%s", ipv6Literal, rawPort), nil</span>
+                <span class="cov0" title="0">return fmt.Sprintf("[%s]:%s", rawHost, rawPort), nil</span>
         }
         // ipv4
         <span class="cov0" title="0">if net.ParseIP(rawHost) == nil </span><span class="cov0" title="0">{
-                return "", fmt.Errorf("%s: invalid IP address %s : %w", op, rawHost, ErrInvalidParameter)
+                return "", fmt.Errorf("%s: invalid IP address \"%s\": %w", op, rawHost, ErrInvalidParameter)
         }</span>
         <span class="cov0" title="0">return fmt.Sprintf("%s:%s", rawHost, rawPort), nil</span>
 }
@@ -3835,7 +4096,7 @@ func (s *Server) Run(addr string, opt ...Option) error <span class="cov8" title=
         opts := getConfigOpts(opt...)
 
         var err error
-        addr, err = validateAddr(addr)
+        addr, err = validateAddrPort(addr)
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("%s: %w", op, err)
         }</span>
@@ -3976,7 +4237,7 @@ func (s *Server) Router(r *Mux) error <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file17" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file18" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -4074,7 +4335,7 @@ func WithOnClose(handler OnCloseHandler) Option <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file18" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file19" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -4140,7 +4401,7 @@ func SIDBytesToString(b []byte) (string, error) <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file19" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file20" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package testdirectory
@@ -4240,6 +4501,10 @@ func Start(t TestingT, opt ...Option) *Directory <span class="cov8" title="1">{
         opts := getOpts(t, opt...)
         if opts.withPort == 0 </span><span class="cov8" title="1">{
                 opts.withPort = FreePort(t)
+        }</span>
+        // Handle IPv6 addresses
+        <span class="cov8" title="1">if strings.Contains(opts.withHost, ":") &amp;&amp; !strings.ContainsAny(opts.withHost, "[]") </span><span class="cov8" title="1">{
+                opts.withHost = "[" + opts.withHost + "]"
         }</span>
 
         <span class="cov8" title="1">d := &amp;Directory{
@@ -5060,7 +5325,7 @@ func (d *Directory) logSearchRequest(m *gldap.SearchMessage) <span class="cov8" 
 }</span>
 </pre>
 		
-		<pre class="file" id="file20" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file21" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package testdirectory
@@ -5288,7 +5553,7 @@ func WithDisablePanicRecovery(t TestingT, disable bool) Option <span class="cov8
 }
 </pre>
 		
-		<pre class="file" id="file21" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file22" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package testdirectory
@@ -5447,9 +5712,14 @@ func GetTLSConfig(t TestingT, opt ...Option) (s *tls.Config, c *tls.Config) <spa
         opts := getOpts(t, opt...)
 
         var ipAddrs []net.IP
-        if hostIp := net.ParseIP(opts.withHost); hostIp != nil </span><span class="cov8" title="1">{
-                ipAddrs = append(ipAddrs, hostIp)
-        }</span>
+        switch </span>{
+        case opts.withHost == "localhost":<span class="cov8" title="1">
+                ipAddrs = append(ipAddrs, net.IPv4(127, 0, 0, 1))</span>
+        default:<span class="cov8" title="1">
+                if hostIp := net.ParseIP(opts.withHost); hostIp != nil </span><span class="cov8" title="1">{
+                        ipAddrs = append(ipAddrs, hostIp)
+                }</span>
+        }
 
         <span class="cov8" title="1">cert := &amp;x509.Certificate{
                 SerialNumber:          genSerialNumber(t),
@@ -5545,7 +5815,7 @@ func genSerialNumber(t TestingT) *big.Int <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file22" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file23" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package testdirectory
@@ -5611,7 +5881,7 @@ func (l *Logger) Log(i ...interface{}) <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file23" style="display: none">// Copyright (c) Jim Lambert
+		<pre class="file" id="file24" style="display: none">// Copyright (c) Jim Lambert
 // SPDX-License-Identifier: MIT
 
 package gldap
@@ -5776,6 +6046,20 @@ func testDeleteRequestPacket(t *testing.T, m DeleteMessage) *packet <span class=
         }</span>
 }
 
+func testAbandonRequestPacket(t *testing.T, m AbandonMessage) *packet <span class="cov8" title="1">{
+        t.Helper()
+        envelope := testRequestEnvelope(t, int(m.GetID()))
+        pkt := ber.NewInteger(ber.ClassApplication, ber.TypePrimitive, ApplicationAbandonRequest, m.MessageID, "Abandon Request")
+
+        envelope.AppendChild(pkt)
+        if len(m.Controls) &gt; 0 </span><span class="cov8" title="1">{
+                envelope.AppendChild(encodeControls(m.Controls))
+        }</span>
+        <span class="cov8" title="1">return &amp;packet{
+                Packet: envelope,
+        }</span>
+}
+
 func testAddRequestPacket(t *testing.T, m AddMessage) *packet <span class="cov8" title="1">{
         t.Helper()
         envelope := testRequestEnvelope(t, int(m.GetID()))
@@ -5797,6 +6081,7 @@ func testAddRequestPacket(t *testing.T, m AddMessage) *packet <span class="cov8"
 }
 
 func testRequestEnvelope(t *testing.T, messageID int) *ber.Packet <span class="cov8" title="1">{
+        t.Helper()
         p := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
         p.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, int64(messageID), "MessageID"))
         return p
@@ -5866,27 +6151,31 @@ func TestEncodeString(t *testing.T, tag ber.Tag, s string, opt ...Option) string
 }</span>
 
 type safeBuf struct {
+        t   *testing.T
         buf *strings.Builder
-        mu  *sync.Mutex
+        mu  *sync.RWMutex
 }
 
 func testSafeBuf(t *testing.T) *safeBuf <span class="cov8" title="1">{
         t.Helper()
         return &amp;safeBuf{
-                mu:  &amp;sync.Mutex{},
+                t:   t,
+                mu:  &amp;sync.RWMutex{},
                 buf: &amp;strings.Builder{},
         }
 }</span>
 
 func (w *safeBuf) Write(p []byte) (n int, err error) <span class="cov8" title="1">{
+        w.t.Helper()
         w.mu.Lock()
         defer w.mu.Unlock()
         return w.buf.Write(p)
 }</span>
 
 func (w *safeBuf) String() string <span class="cov0" title="0">{
-        w.mu.Lock()
-        defer w.mu.Unlock()
+        w.t.Helper()
+        w.mu.RLock()
+        defer w.mu.RUnlock()
         return w.buf.String()
 }</span>
 </pre>
