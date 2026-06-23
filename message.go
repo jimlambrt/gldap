@@ -11,18 +11,18 @@ import (
 type Scope int64
 
 const (
-	// BaseObject (often referred to as “base”): Indicates that only the entry
+	// BaseObject (often referred to as "base"): Indicates that only the entry
 	// specified as the search base should be considered. None of its
 	// subordinates will be considered.
 	BaseObject Scope = 0
 
-	// SingleLevel (often referred to as “one”): Indicates that only the
+	// SingleLevel (often referred to as "one"): Indicates that only the
 	// immediate children of the entry specified as the search base should be
 	// considered. The base entry itself should not be considered, nor any
 	// descendants of the immediate children of the base entry.
 	SingleLevel Scope = 1
 
-	// WholeSubtree (often referred to as “sub”): Indicates that the entry
+	// WholeSubtree (often referred to as "sub"): Indicates that the entry
 	// specified as the search base, and all of its subordinates to any depth,
 	// should be considered. Note that in the special case that the search base
 	// DN is the null DN, the root DSE should not be considered in a
@@ -48,6 +48,7 @@ const (
 	addRequestType      requestType = "add"
 	deleteRequestType   requestType = "delete"
 	unbindRequestType   requestType = "unbind"
+	abandonRequestType  requestType = "abandon"
 )
 
 // Message defines a common interface for all messages
@@ -114,6 +115,16 @@ type DeleteMessage struct {
 	baseMessage
 	// DN identifies the entry being added
 	DN string
+
+	// Controls hold optional controls to send with the request
+	Controls []Control
+}
+
+// AbandonMessage is an abandon request message
+type AbandonMessage struct {
+	baseMessage
+	// MessageID is the ID of the message to abandon
+	MessageID int64
 
 	// Controls hold optional controls to send with the request
 	Controls []Control
@@ -226,6 +237,18 @@ func newMessage(p *packet) (Message, error) {
 			},
 			DN:       dn,
 			Controls: controls,
+		}, nil
+	case abandonRequestType:
+		id, controls, err := p.abandonParameters()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		return &AbandonMessage{
+			baseMessage: baseMessage{
+				id: msgID,
+			},
+			MessageID: id,
+			Controls:  controls,
 		}, nil
 	default:
 		return &ExtendedOperationMessage{
