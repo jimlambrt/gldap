@@ -270,6 +270,21 @@ func Test_newRequest(t *testing.T) {
 			wantErr:         true,
 			wantErrContains: "unable to build message for request",
 		},
+		{
+			name:      "invalid-abandon-message-id",
+			requestID: 1,
+			conn:      &conn{},
+			packet: func() *packet {
+				envelope := testRequestEnvelope(t, 1)
+				pkt := ber.Encode(ber.ClassApplication, ber.TypePrimitive, ApplicationAbandonRequest, nil, "Abandon Request")
+				pkt.Data.Write([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
+				envelope.AppendChild(pkt)
+				return &packet{Packet: envelope}
+			}(),
+			wantErr:         true,
+			wantErrIs:       ErrInvalidParameter,
+			wantErrContains: "invalid integer in abandon request",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

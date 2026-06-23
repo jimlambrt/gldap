@@ -715,8 +715,14 @@ func Test_Start_Abandon(t *testing.T) {
 
 		err = s.Router(r)
 		require.NoError(err)
-		go func() { require.NoError(s.Run(fmt.Sprintf(":%d", port))) }()
-		defer func() { require.NoError(s.Stop()) }()
+		runErrCh := make(chan error, 1)
+		go func() {
+			runErrCh <- s.Run(fmt.Sprintf(":%d", port))
+		}()
+		defer func() {
+			require.NoError(s.Stop())
+			require.NoError(<-runErrCh)
+		}()
 
 		require.Eventually(s.Ready, 2*time.Second, 50*time.Millisecond, "waiting for listener to be ready")
 
@@ -732,8 +738,9 @@ func Test_Start_Abandon(t *testing.T) {
 			envelope.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, requestID, "MessageID"))
 			abandon := ber.NewInteger(ber.ClassApplication, ber.TypePrimitive, gldap.ApplicationAbandonRequest, abandonID, "Abandon Request")
 			envelope.AppendChild(abandon)
-			_, err := conn.Write(envelope.Bytes())
+			n, err := conn.Write(envelope.Bytes())
 			require.NoError(err)
+			require.Equal(len(envelope.Bytes()), n)
 		}
 
 		writeAbandon(1, 100)

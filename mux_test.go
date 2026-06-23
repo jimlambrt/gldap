@@ -211,4 +211,41 @@ func TestMux_Abandon(t *testing.T) {
 		assert.ErrorIs(err, ErrInvalidParameter)
 		assert.Contains(err.Error(), "missing HandlerFunc")
 	})
+
+	t.Run("default-route-is-not-used", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+
+		var writerBuf bytes.Buffer
+		var logBuf bytes.Buffer
+		testLogger := hclog.New(&hclog.LoggerOptions{
+			Name:   "TestMux_Abandon-logger",
+			Level:  hclog.Debug,
+			Output: &logBuf,
+		})
+		w, err := newResponseWriter(bufio.NewWriter(&writerBuf), &sync.Mutex{}, testLogger, 1, 2)
+		require.NoError(err)
+
+		m, err := NewMux()
+		require.NoError(err)
+
+		defaultCalled := false
+		err = m.DefaultRoute(func(w *ResponseWriter, req *Request) {
+			defaultCalled = true
+			_ = w.Write(req.NewResponse(WithResponseCode(ResultSuccess)))
+		})
+		require.NoError(err)
+
+		req := &Request{
+			message: &AbandonMessage{
+				baseMessage: baseMessage{id: 2},
+				MessageID:   1,
+			},
+			routeOp: abandonRouteOperation,
+		}
+		m.serve(w, req)
+
+		assert.False(defaultCalled)
+		assert.Empty(writerBuf.String())
+		assert.Contains(logBuf.String(), "no handler for abandon request. ignoring.")
+	})
 }

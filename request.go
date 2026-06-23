@@ -182,7 +182,7 @@ func (r *Request) NewBindResponse(opt ...Option) *BindResponse {
 }
 
 // GetSimpleBindMessage retrieves the SimpleBindMessage from the request, which
-// allows you handle the request based on the message attributes.
+// allows you to handle the request based on the message attributes.
 func (r *Request) GetSimpleBindMessage() (*SimpleBindMessage, error) {
 	const op = "gldap.(Request).GetSimpleBindMessage"
 	s, ok := r.message.(*SimpleBindMessage)
