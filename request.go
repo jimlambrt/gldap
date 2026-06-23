@@ -275,7 +275,7 @@ func (r *Request) GetDeleteMessage() (*DeleteMessage, error) {
 }
 
 // GetAbandonMessage retrieves the AbandonMessage from the request, which
-// allows you handle the request based on the message attributes.
+// allows you to handle the request based on the message attributes.
 func (r *Request) GetAbandonMessage() (*AbandonMessage, error) {
 	const op = "gldap.(Request).GetAbandonMessage"
 	m, ok := r.message.(*AbandonMessage)
