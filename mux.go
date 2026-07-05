@@ -184,7 +184,7 @@ func (m *Mux) Delete(modifyFn HandlerFunc, opt ...Option) error {
 
 // Abandon will register a handler for abandon operation requests.
 // Options supported: WithLabel.
-// Note: An abandon request must not ilicit a response. The HandlerFunc
+// Note: An abandon request must not be responded to. The HandlerFunc
 // is passed a *ResponseWriter, but it must not be used to send a response.
 func (m *Mux) Abandon(abandonFn HandlerFunc, opt ...Option) error {
 	const op = "gldap.(Mux).Abandon"
@@ -252,16 +252,16 @@ func (m *Mux) serve(w *ResponseWriter, req *Request) {
 		h(w, req)
 		return
 	}
-	if m.defaultRoute != nil {
-		h := m.defaultRoute.handler()
-		h(w, req)
-		return
-	}
-
 	// Do not send a response to an unhandled Abandon request. They must not have
 	// any response.
 	if req.routeOp == abandonRouteOperation {
 		w.logger.Warn("no handler for abandon request. ignoring.", "op", op, "connID", w.connID, "requestID", w.requestID)
+		return
+	}
+
+	if m.defaultRoute != nil {
+		h := m.defaultRoute.handler()
+		h(w, req)
 		return
 	}
 

@@ -547,7 +547,7 @@ func (p *packet) assertApplicationRequest() error {
 		switch chkPacket.Tag {
 		case ApplicationDelRequest, ApplicationUnbindRequest, ApplicationAbandonRequest:
 		default:
-			return fmt.Errorf("%s: incorrect type, primitive %q must be a delete (%d), an unbind (%d) or abandon (%d) request, but got %d", op, ber.TypePrimitive, ApplicationDelRequest, ApplicationUnbindRequest, ApplicationAbandonRequest, chkPacket.Tag)
+			return fmt.Errorf("%s: incorrect type, primitive %d must be a delete (%d), an unbind (%d) or abandon (%d) request, but got %d", op, ber.TypePrimitive, ApplicationDelRequest, ApplicationUnbindRequest, ApplicationAbandonRequest, chkPacket.Tag)
 		}
 	case ber.TypeConstructed:
 	default:
@@ -634,8 +634,6 @@ func (p *packet) deleteParameters() (string, []Control, error) {
 func (p *packet) abandonParameters() (int64, []Control, error) {
 	const op = "gldap.(packet).abandonParameters"
 
-	const childMessageID = 0
-
 	requestPacket, err := p.requestPacket()
 	if err != nil {
 		return 0, nil, fmt.Errorf("%s: %w", op, err)
@@ -646,7 +644,7 @@ func (p *packet) abandonParameters() (int64, []Control, error) {
 
 	id, err := ber.ParseInt64(requestPacket.Data.Bytes())
 	if err != nil {
-		return 0, nil, fmt.Errorf("%s: invalid integer in abandon request: %w", op, ErrInvalidParameter)
+		return 0, nil, fmt.Errorf("%s: invalid integer in abandon request: %v: %w", op, err, ErrInvalidParameter)
 	}
 
 	var controls []Control
