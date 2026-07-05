@@ -182,6 +182,29 @@ func (m *Mux) Delete(modifyFn HandlerFunc, opt ...Option) error {
 	return nil
 }
 
+// Abandon will register a handler for abandon operation requests.
+// Options supported: WithLabel.
+// Note: An abandon request must not be responded to. The HandlerFunc
+// is passed a *ResponseWriter, but it must not be used to send a response.
+func (m *Mux) Abandon(abandonFn HandlerFunc, opt ...Option) error {
+	const op = "gldap.(Mux).Abandon"
+	if abandonFn == nil {
+		return fmt.Errorf("%s: missing HandlerFunc: %w", op, ErrInvalidParameter)
+	}
+	opts := getRouteOpts(opt...)
+	r := &abandonRoute{
+		baseRoute: &baseRoute{
+			h:       abandonFn,
+			routeOp: abandonRouteOperation,
+			label:   opts.withLabel,
+		},
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.routes = append(m.routes, r)
+	return nil
+}
+
 // DefaultRoute will register a default handler requests which have no other
 // registered handler.
 func (m *Mux) DefaultRoute(noRouteFN HandlerFunc, opt ...Option) error {
@@ -229,11 +252,19 @@ func (m *Mux) serve(w *ResponseWriter, req *Request) {
 		h(w, req)
 		return
 	}
+	// Do not send a response to an unhandled Abandon request. They must not have
+	// any response.
+	if req.routeOp == abandonRouteOperation {
+		w.logger.Warn("no handler for abandon request. ignoring.", "op", op, "connID", w.connID, "requestID", w.requestID)
+		return
+	}
+
 	if m.defaultRoute != nil {
 		h := m.defaultRoute.handler()
 		h(w, req)
 		return
 	}
+
 	w.logger.Error("no matching handler found for request and returning internal error", "op", op, "connID", w.connID, "requestID", w.requestID, "routeOp", req.routeOp)
 	resp := req.NewResponse(WithResponseCode(ResultUnwillingToPerform), WithDiagnosticMessage("No matching handler found"))
 	_ = w.Write(resp)

@@ -48,6 +48,7 @@ const (
 	addRequestType      requestType = "add"
 	deleteRequestType   requestType = "delete"
 	unbindRequestType   requestType = "unbind"
+	abandonRequestType  requestType = "abandon"
 )
 
 // Message defines a common interface for all messages
@@ -114,6 +115,16 @@ type DeleteMessage struct {
 	baseMessage
 	// DN identifies the entry being added
 	DN string
+
+	// Controls hold optional controls to send with the request
+	Controls []Control
+}
+
+// AbandonMessage is an abandon request message
+type AbandonMessage struct {
+	baseMessage
+	// MessageID is the ID of the message to abandon
+	MessageID int64
 
 	// Controls hold optional controls to send with the request
 	Controls []Control
@@ -226,6 +237,18 @@ func newMessage(p *packet) (Message, error) {
 			},
 			DN:       dn,
 			Controls: controls,
+		}, nil
+	case abandonRequestType:
+		id, controls, err := p.abandonParameters()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		return &AbandonMessage{
+			baseMessage: baseMessage{
+				id: msgID,
+			},
+			MessageID: id,
+			Controls:  controls,
 		}, nil
 	default:
 		return &ExtendedOperationMessage{

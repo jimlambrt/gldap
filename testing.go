@@ -163,6 +163,20 @@ func testDeleteRequestPacket(t *testing.T, m DeleteMessage) *packet {
 	}
 }
 
+func testAbandonRequestPacket(t *testing.T, m AbandonMessage) *packet {
+	t.Helper()
+	envelope := testRequestEnvelope(t, int(m.GetID()))
+	pkt := ber.NewInteger(ber.ClassApplication, ber.TypePrimitive, ApplicationAbandonRequest, m.MessageID, "Abandon Request")
+
+	envelope.AppendChild(pkt)
+	if len(m.Controls) > 0 {
+		envelope.AppendChild(encodeControls(m.Controls))
+	}
+	return &packet{
+		Packet: envelope,
+	}
+}
+
 func testAddRequestPacket(t *testing.T, m AddMessage) *packet {
 	t.Helper()
 	envelope := testRequestEnvelope(t, int(m.GetID()))

@@ -134,6 +134,8 @@ func (p *packet) requestType() (requestType, error) {
 		return deleteRequestType, nil
 	case ApplicationUnbindRequest:
 		return unbindRequestType, nil
+	case ApplicationAbandonRequest:
+		return abandonRequestType, nil
 	default:
 		return unknownRequestType, fmt.Errorf("%s: unhandled request type %d: %w", op, requestPacket.Tag, ErrInternal)
 	}
@@ -542,8 +544,10 @@ func (p *packet) assertApplicationRequest() error {
 	}
 	switch chkPacket.TagType {
 	case ber.TypePrimitive:
-		if chkPacket.Tag != ApplicationDelRequest && chkPacket.Tag != ApplicationUnbindRequest {
-			return fmt.Errorf("%s: incorrect type, primitive %q must be a delete request %q or an unbind request %q, but got %q", op, ber.TypePrimitive, ApplicationDelRequest, ApplicationUnbindRequest, chkPacket.Tag)
+		switch chkPacket.Tag {
+		case ApplicationDelRequest, ApplicationUnbindRequest, ApplicationAbandonRequest:
+		default:
+			return fmt.Errorf("%s: incorrect type, primitive %d must be a delete (%d), an unbind (%d) or abandon (%d) request, but got %d", op, ber.TypePrimitive, ApplicationDelRequest, ApplicationUnbindRequest, ApplicationAbandonRequest, chkPacket.Tag)
 		}
 	case ber.TypeConstructed:
 	default:
@@ -625,6 +629,41 @@ func (p *packet) deleteParameters() (string, []Control, error) {
 		}
 	}
 	return dn, controls, nil
+}
+
+func (p *packet) abandonParameters() (int64, []Control, error) {
+	const op = "gldap.(packet).abandonParameters"
+
+	requestPacket, err := p.requestPacket()
+	if err != nil {
+		return 0, nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if requestPacket.Packet.Tag != ApplicationAbandonRequest {
+		return 0, nil, fmt.Errorf("%s: not an abandon request, expected tag %d and got %d: %w", op, ApplicationAbandonRequest, requestPacket.Tag, ErrInvalidParameter)
+	}
+
+	id, err := ber.ParseInt64(requestPacket.Data.Bytes())
+	if err != nil {
+		return 0, nil, fmt.Errorf("%s: invalid integer in abandon request: %v: %w", op, err, ErrInvalidParameter)
+	}
+
+	var controls []Control
+	controlPacket, err := p.controlPacket()
+	if err != nil {
+		return 0, nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if controlPacket != nil {
+		controls = make([]Control, 0, len(controlPacket.Children))
+		for _, c := range controlPacket.Children {
+			ctrl, err := decodeControl(c)
+			if err != nil {
+				return 0, nil, fmt.Errorf("%s: %w", op, err)
+			}
+			controls = append(controls, ctrl)
+		}
+	}
+
+	return id, controls, nil
 }
 
 var tagMap = map[ber.Tag]string{

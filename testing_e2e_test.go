@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -678,5 +679,78 @@ func Test_Start_Unbind(t *testing.T) {
 
 		wg.Wait()
 		assert.Equal("unbind-success", got)
+	})
+}
+
+func Test_Start_Abandon(t *testing.T) {
+	t.Parallel()
+	t.Run("abandon", func(t *testing.T) {
+		require := require.New(t)
+		port := testdirectory.FreePort(t)
+
+		l := hclog.New(&hclog.LoggerOptions{
+			Name:  "abandon-logger",
+			Level: hclog.Error,
+		})
+
+		// create a new server
+		s, err := gldap.NewServer(gldap.WithLogger(l), gldap.WithDisablePanicRecovery())
+		require.NoError(err)
+
+		// create a router and add an abandon handler which reports the message
+		// ID it was asked to abandon
+		r, err := gldap.NewMux()
+		require.NoError(err)
+
+		abandonedCh := make(chan int64, 2)
+		err = r.Abandon(func(w *gldap.ResponseWriter, req *gldap.Request) {
+			m, err := req.GetAbandonMessage()
+			if err != nil {
+				t.Errorf("unable to get abandon msg: %s", err.Error())
+				return
+			}
+			abandonedCh <- m.MessageID
+		})
+		require.NoError(err)
+
+		err = s.Router(r)
+		require.NoError(err)
+		runErrCh := make(chan error, 1)
+		go func() { runErrCh <- s.Run(fmt.Sprintf(":%d", port)) }()
+		defer func() {
+			require.NoError(s.Stop())
+			require.NoError(<-runErrCh)
+		}()
+
+		require.Eventually(s.Ready, 2*time.Second, 50*time.Millisecond, "waiting for listener to be ready")
+
+		// go-ldap's client doesn't expose an abandon request, so we send the
+		// raw request: "[APPLICATION 16] MessageID"
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+		require.NoError(err)
+		defer conn.Close()
+
+		// go-ldap does not have an Abandon request. Encode it explicitly instead.
+		writeAbandon := func(requestID, abandonID int64) {
+			envelope := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "LDAP Request")
+			envelope.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, requestID, "MessageID"))
+			abandon := ber.NewInteger(ber.ClassApplication, ber.TypePrimitive, gldap.ApplicationAbandonRequest, abandonID, "Abandon Request")
+			envelope.AppendChild(abandon)
+			b := envelope.Bytes()
+			for len(b) > 0 {
+				n, err := conn.Write(b)
+				require.NoError(err)
+				b = b[n:]
+			}
+
+		}
+
+		writeAbandon(1, 100)
+		select {
+		case got := <-abandonedCh:
+			require.Equal(int64(100), got)
+		case <-time.After(2 * time.Second):
+			t.Fatal("timed out waiting for abandon request to be handled")
+		}
 	})
 }

@@ -141,6 +141,7 @@ func searchHandler(w *gldap.ResponseWriter, r *gldap.Request) {
 * Add Requests
 * Delete Requests
 * Unbind Requests
+* Abandon Requests
 
 ### Future features
 At this point, we may wait until issues are opened before planning new features

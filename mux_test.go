@@ -192,3 +192,23 @@ func TestMux_Unbind(t *testing.T) {
 		})
 	}
 }
+
+func TestMux_Abandon(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		require := require.New(t)
+		m, err := NewMux()
+		require.NoError(err)
+		err = m.Abandon(func(*ResponseWriter, *Request) {})
+		require.NoError(err)
+	})
+
+	t.Run("missing-fn", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+		m, err := NewMux()
+		require.NoError(err)
+		err = m.Abandon(nil)
+		require.Error(err)
+		assert.ErrorIs(err, ErrInvalidParameter)
+		assert.Contains(err.Error(), "missing HandlerFunc")
+	})
+}

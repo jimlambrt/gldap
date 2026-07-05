@@ -32,6 +32,9 @@ const (
 	// deleteRouteOperation is a route supporting the delete operation
 	deleteRouteOperation routeOperation = "delete"
 
+	// abandonRouteOperation is a route supporting the abandon operation
+	abandonRouteOperation routeOperation = "abandon"
+
 	// unbindRouteOperation is a route supporting the unbind operation
 	unbindRouteOperation routeOperation = "unbind"
 
@@ -100,6 +103,10 @@ type deleteRoute struct {
 	*baseRoute
 }
 
+type abandonRoute struct {
+	*baseRoute
+}
+
 func (r *deleteRoute) match(req *Request) bool {
 	if req == nil {
 		return false
@@ -108,6 +115,19 @@ func (r *deleteRoute) match(req *Request) bool {
 		return false
 	}
 	if _, ok := req.message.(*DeleteMessage); !ok {
+		return false
+	}
+	return true
+}
+
+func (r *abandonRoute) match(req *Request) bool {
+	if req == nil {
+		return false
+	}
+	if r.op() != req.routeOp {
+		return false
+	}
+	if _, ok := req.message.(*AbandonMessage); !ok {
 		return false
 	}
 	return true
