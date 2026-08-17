@@ -7,7 +7,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -156,6 +158,98 @@ func TestServer_Run(t *testing.T) {
 		wg.Wait()
 		assert.Equal(1, closeCnt)
 	})
+}
+
+// recordingConn records the first byte read from a conn, so a test can assert
+// what the listener sees before any TLS negotiation happens.
+type recordingConn struct {
+	net.Conn
+	once      *sync.Once
+	firstByte chan<- byte
+}
+
+func (c *recordingConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	if n > 0 {
+		c.once.Do(func() { c.firstByte <- b[0] })
+	}
+	return n, err
+}
+
+// recordingListener counts accepted conns and wraps each in a recordingConn.
+type recordingListener struct {
+	net.Listener
+	accepts   *atomic.Int32
+	firstByte chan<- byte
+}
+
+func (l *recordingListener) Accept() (net.Conn, error) {
+	c, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	l.accepts.Add(1)
+	return &recordingConn{Conn: c, once: &sync.Once{}, firstByte: l.firstByte}, nil
+}
+
+func TestServer_RunWithListener(t *testing.T) {
+	t.Parallel()
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  "TestServer_RunWithListener-logger",
+		Level: hclog.Error,
+	})
+	srvTLS, clientTLS := testdirectory.GetTLSConfig(t)
+
+	assert, require := assert.New(t), require.New(t)
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(err)
+	port := l.Addr().(*net.TCPAddr).Port
+
+	var accepts atomic.Int32
+	firstByte := make(chan byte, 1)
+	wrapped := &recordingListener{Listener: l, accepts: &accepts, firstByte: firstByte}
+
+	s, err := gldap.NewServer(gldap.WithLogger(testLogger))
+	require.NoError(err)
+	require.NotNil(s)
+
+	go func() {
+		// addr is empty to show it's ignored (and not validated) when a
+		// listener is supplied.
+		err := s.Run("", gldap.WithListener(wrapped), gldap.WithTLSConfig(srvTLS))
+		assert.NoError(err)
+	}()
+	t.Cleanup(func() { err := s.Stop(); assert.NoError(err) })
+
+	for {
+		time.Sleep(100 * time.Nanosecond)
+		if s.Ready() {
+			break
+		}
+	}
+
+	client, err := ldap.DialURL(
+		fmt.Sprintf("ldaps://localhost:%d", port),
+		ldap.DialWithTLSConfig(clientTLS),
+	)
+	require.NoError(err)
+	require.NotNil(client)
+	t.Cleanup(func() { client.Close() })
+
+	// the supplied listener accepted the conn, rather than one the server
+	// opened itself.
+	assert.Equal(int32(1), accepts.Load())
+
+	// the listener sits *below* TLS: the first byte it sees is a TLS handshake
+	// record (0x16), not a decrypted LDAP BER sequence (0x30). Wrappers that
+	// must read the head of the stream (e.g. PROXY protocol) rely on this.
+	select {
+	case b := <-firstByte:
+		assert.Equal(byte(0x16), b)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for the listener to read a byte")
+	}
 }
 
 func TestServer_shutdownCtx(t *testing.T) {

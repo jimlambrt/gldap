@@ -142,22 +142,32 @@ func validateAddrPort(addrPort string) (string, error) {
 
 // Run will run the server which will listen and serve requests.
 //
-// Options supported: WithTLSConfig
+// Options supported: WithTLSConfig, WithListener (addr is ignored when a
+// listener is supplied)
 func (s *Server) Run(addr string, opt ...Option) error {
 	const op = "gldap.(Server).Run"
 	opts := getConfigOpts(opt...)
 
 	var err error
-	addr, err = validateAddrPort(addr)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-	s.mu.Lock()
-	s.listener, err = net.Listen("tcp", addr)
-	s.listenerReady = true
-	s.mu.Unlock()
-	if err != nil {
-		return fmt.Errorf("%s: unable to listen to addr %s: %w", op, addr, err)
+	if opts.withListener != nil {
+		// the caller supplied a listener, so addr is unused and we don't
+		// validate it.
+		s.mu.Lock()
+		s.listener = opts.withListener
+		s.listenerReady = true
+		s.mu.Unlock()
+	} else {
+		addr, err = validateAddrPort(addr)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		s.mu.Lock()
+		s.listener, err = net.Listen("tcp", addr)
+		s.listenerReady = true
+		s.mu.Unlock()
+		if err != nil {
+			return fmt.Errorf("%s: unable to listen to addr %s: %w", op, addr, err)
+		}
 	}
 	if opts.withTLSConfig != nil {
 		s.logger.Debug("setting up TLS listener", "op", op)

@@ -5,6 +5,7 @@ package gldap
 
 import (
 	"crypto/tls"
+	"net"
 	"reflect"
 	"runtime"
 	"testing"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_WithLogger(t *testing.T) {
@@ -58,6 +60,19 @@ func Test_WithDisablePanicRecovery(t *testing.T) {
 	opts := getConfigOpts(WithDisablePanicRecovery())
 	testOpts := configDefaults()
 	testOpts.withDisablePanicRecovery = true
+	assert.Equal(opts, testOpts)
+}
+
+func Test_WithListener(t *testing.T) {
+	t.Parallel()
+	assert, require := assert.New(t), require.New(t)
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(err)
+	t.Cleanup(func() { l.Close() })
+
+	opts := getConfigOpts(WithListener(l))
+	testOpts := configDefaults()
+	testOpts.withListener = l
 	assert.Equal(opts, testOpts)
 }
 

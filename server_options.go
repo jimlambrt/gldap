@@ -5,6 +5,7 @@ package gldap
 
 import (
 	"crypto/tls"
+	"net"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -17,6 +18,7 @@ type configOptions struct {
 	withWriteTimeout         time.Duration
 	withDisablePanicRecovery bool
 	withOnClose              OnCloseHandler
+	withListener             net.Listener
 }
 
 func configDefaults() configOptions {
@@ -75,6 +77,16 @@ func WithDisablePanicRecovery() Option {
 	return func(o interface{}) {
 		if o, ok := o.(*configOptions); ok {
 			o.withDisablePanicRecovery = true
+		}
+	}
+}
+
+// WithListener provides an optional net.Listener to accept connections on, so
+// it can be wrapped. Run(...)'s addr is ignored and Stop(...) closes it.
+func WithListener(l net.Listener) Option {
+	return func(o interface{}) {
+		if o, ok := o.(*configOptions); ok {
+			o.withListener = l
 		}
 	}
 }
