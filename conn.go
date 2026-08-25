@@ -32,6 +32,10 @@ type conn struct {
 	reader   *bufio.Reader
 	writer   *bufio.Writer
 	writerMu sync.Mutex // shared lock across all ResponseWriter's to prevent write data races
+
+	// netConnMu guards netConn alone, not c.mu: readPacket holds c.mu while
+	// blocked reading, so reading the peer address under c.mu would deadlock.
+	netConnMu sync.RWMutex
 }
 
 // newConn will create a new Conn from an accepted net.Conn which will be used
@@ -199,10 +203,23 @@ func (c *conn) initConn(netConn net.Conn) error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.netConnMu.Lock()
 	c.netConn = netConn
-	c.reader = bufio.NewReader(c.netConn)
-	c.writer = bufio.NewWriter(c.netConn)
+	c.netConnMu.Unlock()
+	c.reader = bufio.NewReader(netConn)
+	c.writer = bufio.NewWriter(netConn)
 	return nil
+}
+
+// remoteAddr returns the peer address of the underlying net.Conn, which
+// initConn can swap (StartTLS) while requests are in flight.
+func (c *conn) remoteAddr() net.Addr {
+	c.netConnMu.RLock()
+	defer c.netConnMu.RUnlock()
+	if c.netConn == nil {
+		return nil
+	}
+	return c.netConn.RemoteAddr()
 }
 
 func (c *conn) close() error {

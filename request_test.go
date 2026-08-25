@@ -4,6 +4,7 @@
 package gldap
 
 import (
+	"net"
 	"testing"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -317,6 +318,34 @@ func TestRequest_GetConnectionID(t *testing.T) {
 	req, err := newRequest(requestID, conn, packet)
 	require.NoError(err)
 	assert.Equal(connID, req.ConnectionID())
+}
+
+func TestRequest_RemoteAddr(t *testing.T) {
+	t.Parallel()
+	const requestID = 1
+	packet := testSearchRequestPacket(t,
+		SearchMessage{baseMessage: baseMessage{id: 1}, Filter: "(uid=alice)"},
+	)
+
+	t.Run("with-net-conn", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+		server, client := net.Pipe()
+		defer server.Close()
+		defer client.Close()
+
+		req, err := newRequest(requestID, &conn{connID: 2, netConn: server}, packet)
+		require.NoError(err)
+		assert.Equal(server.RemoteAddr(), req.RemoteAddr())
+	})
+
+	t.Run("nil-net-conn", func(t *testing.T) {
+		assert, require := assert.New(t), require.New(t)
+		// newRequest doesn't require a netConn, so RemoteAddr must not panic
+		// when one was never set.
+		req, err := newRequest(requestID, &conn{connID: 2}, packet)
+		require.NoError(err)
+		assert.Nil(req.RemoteAddr())
+	})
 }
 
 func TestConvertString(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
 )
@@ -91,6 +92,12 @@ func newRequest(id int, c *conn, p *packet) (*Request, error) {
 // successfully authenticated (a.k.a. performed a successful bind operation).
 func (r *Request) ConnectionID() int {
 	return r.conn.connID
+}
+
+// RemoteAddr returns the peer address of the connection that made the request,
+// which enables you to log or audit "where" a request came from.
+func (r *Request) RemoteAddr() net.Addr {
+	return r.conn.remoteAddr()
 }
 
 // NewModifyResponse creates a modify response

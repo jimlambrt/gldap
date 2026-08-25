@@ -158,6 +158,62 @@ func TestServer_Run(t *testing.T) {
 	})
 }
 
+// RemoteAddr must be callable from inside a handler. readPacket holds conn.mu
+// while blocked awaiting the next request, so guarding netConn with that same
+// mutex deadlocks the handler until the client sends more data.
+func TestServer_RemoteAddrFromHandler(t *testing.T) {
+	t.Parallel()
+	assert, require := assert.New(t), require.New(t)
+
+	s, err := gldap.NewServer(gldap.WithDisablePanicRecovery())
+	require.NoError(err)
+
+	got := make(chan string, 1)
+	mux, err := gldap.NewMux()
+	require.NoError(err)
+	require.NoError(mux.Bind(func(w *gldap.ResponseWriter, r *gldap.Request) {
+		addr := r.RemoteAddr() // must not block
+		if addr != nil {
+			got <- addr.String()
+		} else {
+			got <- ""
+		}
+		resp := r.NewBindResponse(gldap.WithResponseCode(gldap.ResultSuccess))
+		_ = w.Write(resp)
+	}))
+	require.NoError(s.Router(mux))
+
+	port := testdirectory.FreePort(t)
+	go func() { _ = s.Run(fmt.Sprintf(":%d", port)) }()
+	t.Cleanup(func() { err := s.Stop(); assert.NoError(err) })
+	for {
+		time.Sleep(100 * time.Nanosecond)
+		if s.Ready() {
+			break
+		}
+	}
+
+	client, err := ldap.DialURL(fmt.Sprintf("ldap://localhost:%d", port))
+	require.NoError(err)
+	t.Cleanup(func() { client.Close() })
+
+	bindErr := make(chan error, 1)
+	go func() { bindErr <- client.Bind("uid=alice,ou=people,dc=example,dc=com", "fido") }()
+
+	select {
+	case addr := <-got:
+		assert.NotEmpty(addr)
+	case <-time.After(10 * time.Second):
+		t.Fatal("handler blocked calling RemoteAddr (deadlock)")
+	}
+	select {
+	case err := <-bindErr:
+		assert.NoError(err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("bind did not complete")
+	}
+}
+
 func TestServer_shutdownCtx(t *testing.T) {
 	t.Parallel()
 	t.Run("conn-serveRequests", func(t *testing.T) {
